@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { getDashboardStats } from "@/lib/services/dashboard";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -119,8 +121,8 @@ export default function DashboardPage() {
                             <div key={player.name} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
                                 <div className="flex items-center gap-3">
                                     <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${i === 0 ? 'bg-yellow-500 text-black' :
-                                            i === 1 ? 'bg-gray-400 text-black' :
-                                                i === 2 ? 'bg-orange-700 text-white' : 'bg-gray-700 text-gray-400'
+                                        i === 1 ? 'bg-gray-400 text-black' :
+                                            i === 2 ? 'bg-orange-700 text-white' : 'bg-gray-700 text-gray-400'
                                         }`}>{i + 1}</span>
                                     <span className="text-gray-200 font-medium">{player.name}</span>
                                 </div>
