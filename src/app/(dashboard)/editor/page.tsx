@@ -21,7 +21,7 @@ import { Loader2, CheckCircle, Database, Search, Plus, Trash2, X } from "lucide-
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { SearchableSelect } from "@/components/ui/searchable-select";
+import { ComboSelect } from "@/components/ui/combo-select";
 
 export default function DataEditorPage() {
     const [mode, setMode] = useState<EditorTable>('match_stats');
@@ -412,12 +412,12 @@ export default function DataEditorPage() {
                         {mode === 'match_stats' ? (
                             <div className="space-y-2">
                                 <Label>Match</Label>
-                                <SearchableSelect
+                                <ComboSelect
                                     options={matches.map(m => ({ label: `${m.date} vs ${m.opponent}`, value: m.id }))}
                                     value={newRecord.match_id}
                                     onValueChange={(val) => setNewRecord({ ...newRecord, match_id: val })}
                                     placeholder="Select Match..."
-                                    className="w-full"
+                                    searchPlaceholder="Search matches..."
                                 />
                                 <p className="text-xs text-gray-500">Note: To create a new match, please do so via Database Admin or API.</p>
                             </div>

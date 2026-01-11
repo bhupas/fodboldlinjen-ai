@@ -156,7 +156,7 @@ function StatRow({ label, val1, val2, unit, highlight }: { label: string, val1: 
     )
 }
 
-import { SearchableSelect } from "@/components/ui/searchable-select";
+import { ComboSelect } from "@/components/ui/combo-select";
 
 function PlayerCard({ player, players, selectedId, onSelect, color, label }: any) {
     const colorClasses = color === 'blue' ? 'border-blue-500/30 text-blue-400' : 'border-purple-500/30 text-purple-400';
@@ -171,7 +171,7 @@ function PlayerCard({ player, players, selectedId, onSelect, color, label }: any
         <Card className={`glass-panel p-6 ${colorClasses} border`}>
             <h3 className={`text-sm font-medium mb-4 ${color === 'blue' ? 'text-blue-400' : 'text-purple-400'}`}>{label}</h3>
 
-            <SearchableSelect
+            <ComboSelect
                 options={options}
                 value={selectedId}
                 onValueChange={onSelect}

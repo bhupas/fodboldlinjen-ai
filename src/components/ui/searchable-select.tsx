@@ -70,9 +70,14 @@ export function SearchableSelect({
                                     key={option.value}
                                     value={option.label}
                                     onSelect={() => {
-                                        console.log("Selected:", option.value); // Debug log
                                         onValueChange(option.value)
                                         setOpen(false)
+                                    }}
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        onValueChange(option.value);
+                                        setOpen(false);
                                     }}
                                     className="text-white hover:bg-white/10 aria-selected:bg-white/10 aria-selected:text-white cursor-pointer pointer-events-auto"
                                 >

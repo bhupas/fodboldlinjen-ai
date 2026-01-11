@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getMetadata, MetadataOptions } from "@/lib/services/metadata";
-import { SearchableSelect } from "@/components/ui/searchable-select";
+import { ComboSelect } from "@/components/ui/combo-select";
 
 export default function AICoachPage() {
     const [metadata, setMetadata] = useState<MetadataOptions>({ matches: [], players: [] });
@@ -135,7 +135,7 @@ export default function AICoachPage() {
                     {scope === 'Match' && (
                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
                             <label className="text-sm font-medium text-gray-300">Select Match</label>
-                            <SearchableSelect
+                            <ComboSelect
                                 options={metadata.matches.map(m => ({ label: m.label, value: m.id }))}
                                 value={selectedId}
                                 onValueChange={setSelectedId}
@@ -148,7 +148,7 @@ export default function AICoachPage() {
                     {scope === 'Player' && (
                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
                             <label className="text-sm font-medium text-gray-300">Select Player</label>
-                            <SearchableSelect
+                            <ComboSelect
                                 options={metadata.players.map(p => ({ label: p, value: p }))}
                                 value={selectedId}
                                 onValueChange={setSelectedId}

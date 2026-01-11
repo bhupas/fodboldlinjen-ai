@@ -18,6 +18,7 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
+import { ComboSelect } from "@/components/ui/combo-select";
 import { Card } from "@/components/ui/card";
 import { Search, Filter, Trophy, Footprints, Target, Shield, Clock, Dumbbell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -79,9 +80,11 @@ export default function PlayerStatsPage() {
         const playerMap = new Map();
 
         filteredStats.forEach(s => {
-            if (!playerMap.has(s.player_name)) {
-                playerMap.set(s.player_name, {
-                    name: s.player_name,
+            const cleanName = s.player_name ? s.player_name.trim() : "Unknown";
+
+            if (!playerMap.has(cleanName)) {
+                playerMap.set(cleanName, {
+                    name: cleanName,
                     games: 0,
                     avgPassing: 0,
                     totalShots: 0,
@@ -95,7 +98,7 @@ export default function PlayerStatsPage() {
                     gymData: []
                 });
             }
-            const p = playerMap.get(s.player_name);
+            const p = playerMap.get(cleanName);
             p.games++;
             // Calculate passing accuracy if not available
             const passAcc = (s.total_passes && s.successful_passes)
@@ -116,9 +119,10 @@ export default function PlayerStatsPage() {
         // Assuming perf stats are global for now as they don't have dates in the current view usually
         const gymMap = new Map();
         rawPerfStats.forEach(p => {
-            if (!gymMap.has(p.player_name)) gymMap.set(p.player_name, []);
+            const cleanName = p.player_name ? p.player_name.trim() : "Unknown";
+            if (!gymMap.has(cleanName)) gymMap.set(cleanName, []);
             const maxPR = Math.max(p.pr_1 || 0, p.pr_2 || 0, p.pr_3 || 0, p.pr_4 || 0);
-            gymMap.get(p.player_name).push({ exercise: p.exercise, maxPR });
+            gymMap.get(cleanName).push({ exercise: p.exercise, maxPR });
         });
 
         // 4. Finalize List
@@ -179,6 +183,13 @@ export default function PlayerStatsPage() {
     const paginatedPlayers = filteredPlayers.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
     const totalPages = Math.ceil(filteredPlayers.length / ITEMS_PER_PAGE);
 
+    const playerOptions = aggregatedPlayers
+        .slice() // copy before sort to be safe
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(p => ({ label: p.name, value: p.name }));
+
+    const opponentOptions = uniqueOpponents.map(o => ({ label: o, value: o }));
+
     if (loading) return <div className="text-white">Loading player data...</div>;
 
     return (
@@ -201,32 +212,29 @@ export default function PlayerStatsPage() {
                     {/* Search */}
                     <div className="relative">
                         <Label className="text-xs text-gray-400 mb-2 block">Search Player</Label>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-2.5 text-gray-500" size={18} />
-                            <Input
-                                placeholder="Name..."
-                                className="pl-10 bg-black/20 border-white/10 text-white h-10"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
-                        </div>
+                        <ComboSelect
+                            options={playerOptions}
+                            value={search}
+                            onValueChange={setSearch}
+                            placeholder="Select player"
+                            searchPlaceholder="Type to search..."
+                        />
+                        {search && (
+                            <button onClick={() => setSearch('')} className="text-xs text-red-400 mt-1 hover:underline text-right w-full block">Clear</button>
+                        )}
                     </div>
 
                     {/* Opponent Filter */}
                     <div>
                         <Label className="text-xs text-gray-400 mb-2 block">Opposition</Label>
-                        <Select value={opponentFilter} onValueChange={setOpponentFilter}>
-                            <SelectTrigger className="bg-black/20 border-white/10 text-white h-10">
-                                <SelectValue placeholder="All Opponents" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-[#1e293b] border-white/10 text-white">
-                                <SelectItem value="all">All Opponents</SelectItem>
-                                {uniqueOpponents.map(opp => (
-                                    <SelectItem key={opp} value={opp}>{opp}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {opponentFilter && opponentFilter !== 'all' && (
+                        <ComboSelect
+                            options={[{ label: "All Opponents", value: "all" }, ...opponentOptions]}
+                            value={opponentFilter || "all"}
+                            onValueChange={(val) => setOpponentFilter(val === "all" ? "" : val)}
+                            placeholder="Select opponent"
+                            searchPlaceholder="Type to search..."
+                        />
+                        {opponentFilter && (
                             <button onClick={() => setOpponentFilter('')} className="text-xs text-red-400 mt-1 hover:underline">Clear</button>
                         )}
                     </div>
