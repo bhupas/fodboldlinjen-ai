@@ -41,7 +41,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "No data found" }, { status: 404 });
         }
 
-        // 2. Enrich Data
+        // 2. Fetch Performance Data
+        let perfQuery = supabase.from('performance_stats').select('*');
+        if (scope === 'Player' && id) {
+            perfQuery = perfQuery.eq('player_name', id);
+        }
+        const { data: perfStats } = await perfQuery;
+
+        // 3. Enrich Data
         let enriched = calculateMetrics(rawStats as any);
 
         // 3. Filter Data based on Scope
@@ -85,7 +92,36 @@ export async function POST(req: NextRequest) {
         // Trend (Simple check of last few matches if applicable)
         // Omitted for brevity, but could be added.
 
-        // 5. Construct Prompt
+        // 5. Process Performance Data (Summary)
+        let perfSummary = "";
+        const includedPlayers = new Set(selectionData.map(e => e.player_name));
+        const filteredPerfStats = (perfStats || []).filter((p: any) => includedPlayers.has(p.player_name));
+
+        if (filteredPerfStats.length > 0) {
+            const exerciseStats = new Map<string, number[]>();
+            filteredPerfStats.forEach((p: any) => {
+                const key = p.exercise;
+                if (!exerciseStats.has(key)) exerciseStats.set(key, []);
+                // Use largest PR value found in the row
+                const maxPr = Math.max(parseFloat(p.pr_1) || 0, parseFloat(p.pr_2) || 0, parseFloat(p.pr_3) || 0, parseFloat(p.pr_4) || 0);
+                if (maxPr > 0) exerciseStats.get(key)?.push(maxPr);
+            });
+
+            const lines: string[] = [];
+            exerciseStats.forEach((values, exercise) => {
+                const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                const max = Math.max(...values);
+                const lcExercise = exercise.toLowerCase();
+                const unit = (lcExercise.includes('sprint') || lcExercise.includes('run')) ? 's' : 'kg';
+                lines.push(`- ${exercise}: Avg ${avg.toFixed(1)}${unit}, Max ${max}${unit}`);
+            });
+
+            if (lines.length > 0) {
+                perfSummary = `🏋️ **Fysisk Performance (Gym/Tests):**\n${lines.join('\n')}`;
+            }
+        }
+
+        // 6. Construct Prompt
         const prompts = {
             tactical: `
                 Fokuser på TAKTISKE elementer:
@@ -134,13 +170,15 @@ export async function POST(req: NextRequest) {
 
             **DATA FOR: ${selectionName}**
 
-            📊 **Kvantitative Nøgletal:**
+            📊 **Kvantitative Nøgletal (Match):**
             - Datapunkter analyseret: ${selectionData.length}
             - Gennemsnitlig Performance Rating: ${avgRating.toFixed(1)}/100
             - Pasningspræcision: ${avgPassing.toFixed(1)}%
             - Skudfrekvens: ${avgShots.toFixed(1)} per spiller/kamp
             - Presintensitet: ${avgPressing.toFixed(1)}%
             - Defensiv arbejdsrate: ${avgDefWork.toFixed(1)}%
+
+            ${perfSummary}
 
             💭 **Spillernes Feedback:**
             "${feedbackText}"
@@ -152,7 +190,7 @@ export async function POST(req: NextRequest) {
             Skriv en professionel trænerrapport på DANSK med følgende struktur:
 
             ## 🎯 Hovedkonklusioner
-            [3-4 skarpe observationer baseret på data]
+            [3-4 skarpe observationer baseret på både kamp- og fysiske data]
 
             ## 💪 Styrker at Bygge På
             [Konkrete styrker med data-backing]
@@ -161,7 +199,7 @@ export async function POST(req: NextRequest) {
             [Specifikke svagheder der SKAL addresses]
 
             ## 🏃 Træningsplan (Næste 2 Uger)
-            [Konkrete øvelser og fokuspunkter]
+            [Konkrete øvelser og fokuspunkter, inkl. fysisk træning hvis relevant]
 
             ## 📈 Målsætninger for Næste 3 Kampe
             [Specifikke, målbare mål]

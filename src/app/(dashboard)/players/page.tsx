@@ -19,7 +19,7 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Search, Filter, Trophy, Footprints, Target, Shield, Clock } from "lucide-react";
+import { Search, Filter, Trophy, Footprints, Target, Shield, Clock, Dumbbell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
@@ -182,12 +182,17 @@ export default function PlayerStatsPage() {
                             <TableHead className="text-right text-gray-300">Passing</TableHead>
                             <TableHead className="text-right text-gray-300">Tackles</TableHead>
                             <TableHead className="text-right text-gray-300">Cards</TableHead>
+                            <TableHead className="text-right text-gray-300">Gym</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredPlayers.length > 0 ? (
                             filteredPlayers.map((player) => (
-                                <TableRow key={player.name} className="border-white/5 hover:bg-white/5 transition-colors group">
+                                <TableRow
+                                    key={player.name}
+                                    className="border-white/5 hover:bg-white/5 transition-colors group cursor-pointer"
+                                    onClick={() => window.location.href = `/players/${player.name}`}
+                                >
                                     <TableCell className="font-medium text-white">
                                         <div className="flex flex-col">
                                             <span className="text-base group-hover:text-blue-300 transition-colors">{player.name}</span>
@@ -226,11 +231,22 @@ export default function PlayerStatsPage() {
                                             {player.yellowCards === 0 && player.redCards === 0 && <span className="text-gray-700">-</span>}
                                         </div>
                                     </TableCell>
+                                    <TableCell className="text-right">
+                                        {player.perfCount > 0 ? (
+                                            <div className="flex justify-end">
+                                                <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30 flex items-center gap-1">
+                                                    <Dumbbell size={12} /> {player.perfCount}
+                                                </Badge>
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-600">-</span>
+                                        )}
+                                    </TableCell>
                                 </TableRow>
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={8} className="h-32 text-center text-gray-500">
+                                <TableCell colSpan={9} className="h-32 text-center text-gray-500">
                                     <div className="flex flex-col items-center justify-center">
                                         <Search size={32} className="mb-2 opacity-50" />
                                         <p>No players match your filters.</p>

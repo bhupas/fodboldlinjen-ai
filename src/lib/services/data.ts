@@ -3,22 +3,62 @@ import { supabase } from '@/lib/supabase/client';
 import { UploadedRow } from '@/types';
 
 export const uploadData = async (rows: any[]) => {
+    if (rows.length === 0) return { successCount: 0, errors: [] };
+
+    // Check type of first row
+    if (rows[0]._type === 'performance') {
+        return uploadPerformanceData(rows);
+    } else {
+        return uploadMatchData(rows);
+    }
+};
+
+const uploadPerformanceData = async (rows: any[]) => {
+    let successCount = 0;
+    const errors: string[] = [];
+
+    // Map rows to DB columns
+    const toInsert = rows.map(r => ({
+        player_name: r.Player,
+        exercise: r.Exercise,
+        pr_1: parseFloat(r.PR1) || null,
+        pr_2: parseFloat(r.PR2) || null,
+        pr_3: parseFloat(r.PR3) || null,
+        pr_4: parseFloat(r.PR4) || null
+    })).filter(r => r.player_name && r.exercise);
+
+    if (toInsert.length === 0) {
+        return { successCount: 0, errors: ["No valid performance data found to insert."] };
+    }
+
+    try {
+        const { error } = await supabase
+            .from('performance_stats')
+            .upsert(toInsert, { onConflict: 'player_name, exercise' });
+
+        if (error) throw error;
+
+        successCount = toInsert.length;
+
+    } catch (err: any) {
+        console.error("Error uploading performance data:", err);
+        errors.push(err.message);
+    }
+
+    return { successCount, errors };
+};
+
+const uploadMatchData = async (rows: any[]) => {
     let successCount = 0;
     let errors: string[] = [];
 
     // 1. Group by Match (Opponent + Date)
-    // We assume 'Match' identifier is Opponent + Timestamp (Date)
-    // If Timestamp is missing, we use just Opponent, but that risks merging matches.
-
     const matchesMap = new Map<string, { date: string, opponent: string, team: string, rows: any[] }>();
 
     for (const row of rows) {
-        // Basic cleaning
         const dateStr = row.Timestamp;
-        // Need to handle Date parsing if it's an Excel serial or string
         let dateObj = new Date();
         if (typeof dateStr === 'number') {
-            // Excel serial date roughly (simplification)
             dateObj = new Date(Math.round((dateStr - 25569) * 86400 * 1000));
         } else if (dateStr) {
             dateObj = new Date(dateStr);
@@ -42,7 +82,6 @@ export const uploadData = async (rows: any[]) => {
     // 2. Insert Matches and Stats
     for (const [key, matchData] of matchesMap.entries()) {
         try {
-            // Check if match exists (deduplication logic could be stricter, here based on Date+Opponent)
             const { data: existingMatches, error: matchCheckError } = await supabase
                 .from('matches')
                 .select('id')
@@ -69,7 +108,6 @@ export const uploadData = async (rows: any[]) => {
                 matchId = newMatch.id;
             }
 
-            // Insert Player Stats
             const statsToInsert = matchData.rows.map(r => ({
                 match_id: matchId,
                 player_name: r.Player,
@@ -84,7 +122,7 @@ export const uploadData = async (rows: any[]) => {
                 minutes_played: Number(r.Minutes) || 0,
                 yellow_cards: Number(r.Yellow_Cards) || 0,
                 red_cards: Number(r.Red_Cards) || 0,
-                feedback: r.Feedback
+                feedback: r.Feedback || ''
             }));
 
             const { error: statsError } = await supabase

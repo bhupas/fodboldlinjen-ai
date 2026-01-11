@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Download, Bot, Sparkles, Filter, FileText, User, Calendar, Users } from "lucide-react";
+import { Download, Bot, Sparkles, Filter, FileText, User, Calendar, Users, Zap, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -178,6 +178,46 @@ export default function AICoachPage() {
                                 <SelectItem value="feedback">💭 Feedback & Psychology</SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="space-y-3">
+                        <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                            <Zap size={16} className="text-yellow-400" /> Quick Actions
+                        </label>
+                        <div className="grid grid-cols-1 gap-2">
+                            <Button
+                                variant="outline"
+                                className="justify-start text-left border-white/10 hover:bg-white/5 text-gray-300 h-auto py-3"
+                                onClick={() => {
+                                    if (metadata.matches.length > 0) {
+                                        setScope('Match');
+                                        setSelectedId(metadata.matches[0].id); // Assumes sorted by date desc
+                                        setAnalysisType('tactical');
+                                    }
+                                }}
+                            >
+                                <div>
+                                    <div className="text-white font-medium text-xs">Analyze Last Match</div>
+                                    <div className="text-[10px] text-gray-500">Deep dive into latest game</div>
+                                </div>
+                                <ArrowRight size={14} className="ml-auto text-gray-500" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="justify-start text-left border-white/10 hover:bg-white/5 text-gray-300 h-auto py-3"
+                                onClick={() => {
+                                    setScope('Team');
+                                    setAnalysisType('physical_mental');
+                                }}
+                            >
+                                <div>
+                                    <div className="text-white font-medium text-xs">Team Fitness Report</div>
+                                    <div className="text-[10px] text-gray-500">Review gym & physical state</div>
+                                </div>
+                                <ArrowRight size={14} className="ml-auto text-gray-500" />
+                            </Button>
+                        </div>
                     </div>
 
                     <Button

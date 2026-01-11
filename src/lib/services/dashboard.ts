@@ -17,6 +17,13 @@ export const getDashboardStats = async () => {
       matches ( date, opponent )
     `);
 
+    const { data: perfStats, error: perfError } = await supabase
+        .from('performance_stats')
+        .select('*');
+
+    if (error) throw error;
+    if (perfError) throw perfError;
+
     if (error) throw error;
     if (!stats) return null;
 
@@ -73,7 +80,8 @@ export const getDashboardStats = async () => {
         assists: number,
         minutes: number,
         yellowCards: number,
-        redCards: number
+        redCards: number,
+        perfCount: number
     }>();
 
     enrichedStats.forEach(s => {
@@ -88,7 +96,8 @@ export const getDashboardStats = async () => {
                 assists: 0,
                 minutes: 0,
                 yellowCards: 0,
-                redCards: 0
+                redCards: 0,
+                perfCount: 0
             });
         }
         const p = playerMap.get(s.player_name)!;
@@ -103,6 +112,20 @@ export const getDashboardStats = async () => {
         p.redCards += (s.red_cards || 0);
     });
 
+    if (perfStats) {
+        perfStats.forEach((p: any) => {
+            if (!playerMap.has(p.player_name)) {
+                playerMap.set(p.player_name, {
+                    name: p.player_name,
+                    games: 0, avgPassing: 0, totalShots: 0, totalTackles: 0, goals: 0, assists: 0, minutes: 0,
+                    yellowCards: 0, redCards: 0, perfCount: 0
+                });
+            }
+            const player = playerMap.get(p.player_name)!;
+            player.perfCount++;
+        });
+    }
+
     const allPlayers = Array.from(playerMap.values()).map(p => ({
         name: p.name,
         avgPassing: p.avgPassing / p.games,
@@ -113,6 +136,7 @@ export const getDashboardStats = async () => {
         minutes: p.minutes,
         yellowCards: p.yellowCards,
         redCards: p.redCards,
+        perfCount: p.perfCount,
         games: p.games
     })).sort((a, b) => b.games - a.games); // Default sort by games played
 
@@ -141,12 +165,17 @@ export const getDashboardStats = async () => {
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         .slice(-10); // Last 10 matches
 
+    const topGymPlayers = [...allPlayers].sort((a, b) => b.perfCount - a.perfCount).slice(0, 5);
+    const totalGymEntries = perfStats ? perfStats.length : 0;
+
     return {
         totalMatches,
         avgPassing,
         totalShots,
         totalTackles,
         topPlayers,
+        topGymPlayers,
+        totalGymEntries,
         allPlayers,
         recentActivity
     };

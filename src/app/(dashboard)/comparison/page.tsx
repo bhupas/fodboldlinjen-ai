@@ -97,6 +97,7 @@ export default function ComparisonPage() {
                     <StatRow label="Passing Accuracy" val1={player1.avgPassing.toFixed(1)} val2={player2.avgPassing.toFixed(1)} unit="%" />
                     <StatRow label="Total Shots" val1={player1.totalShots} val2={player2.totalShots} unit="" />
                     <StatRow label="Total Tackles" val1={player1.totalTackles} val2={player2.totalTackles} unit="" />
+                    <StatRow label="Exercises Tracked (Gym)" val1={player1.perfCount || 0} val2={player2.perfCount || 0} unit="" />
                     <StatRow label="Red/Yellow Cards" val1={`${player1.redCards}/${player1.yellowCards}`} val2={`${player2.redCards}/${player2.yellowCards}`} unit="" />
                 </div>
             )}

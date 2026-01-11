@@ -1,9 +1,9 @@
+
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { cleanText } from './utils';
-import { UploadedRow } from '@/types';
 
-const COLUMN_MAPPING = {
+const MATCH_MAPPING = {
     'tidsstempel': 'Timestamp',
     'kamp - hvilket hold spillede du for': 'Team',
     'modstanderen (hvem spillede du mod)': 'Opponent',
@@ -22,7 +22,14 @@ const COLUMN_MAPPING = {
     'hvad vil du gøre bedre i næste kamp ?': 'Feedback'
 };
 
-const EXPECTED_COLS = Object.keys(COLUMN_MAPPING);
+const PERFORMANCE_MAPPING = {
+    'navn': 'Player',
+    'øvelse': 'Exercise',
+    '1.pr': 'PR1',
+    '2.pr': 'PR2',
+    '3.pr': 'PR3',
+    '4. pr': 'PR4'
+};
 
 export const parseFile = async (file: File): Promise<any[]> => {
     return new Promise((resolve, reject) => {
@@ -31,54 +38,42 @@ export const parseFile = async (file: File): Promise<any[]> => {
         reader.onload = (e) => {
             try {
                 const data = e.target?.result;
-                let jsonData: any[] = [];
-                let headerRowIndex = 0;
-
-                if (file.name.endsWith('.csv')) {
-                    // Handle CSV
-                    const text = new TextDecoder("utf-8").decode(data as ArrayBuffer);
-                    // Simple search for header row
-                    const lines = text.split('\n');
-                    headerRowIndex = findHeaderRowIndex(lines);
-
-                    Papa.parse(text, {
-                        header: true,
-                        skipEmptyLines: true,
-                        transformHeader: (h: string) => h.trim(), // simple trim first
-                        complete: (_results: any) => {
-                            // We might need to reparsing if header row wasn't 0, but let's try standard parse first
-                            // Actually, if header is not at 0, PapaParse 'header: true' might fail to key correctly if we don't skip lines.
-                            // Let's rely on finding header row first.
-                            // Placeholder for CSV completion logic
-                        }
-                    });
-                    // Re-implement robust logic below for both
-                }
-
-                // Universal workbook approach for XLSX (and CSV supported by XLSX utils)
                 const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
 
-                // Convert to array of arrays to find header
                 const aoa = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
-                const headerIndex = findHeaderRowIndexAOA(aoa);
 
-                if (headerIndex === -1) {
-                    reject(new Error("Could not find valid header row"));
+                // Determine type
+                const matchHeader = findBestHeaderRow(aoa, Object.keys(MATCH_MAPPING));
+                const perfHeader = findBestHeaderRow(aoa, Object.keys(PERFORMANCE_MAPPING));
+
+                let type: 'match' | 'performance' | null = null;
+                let headerIndex = -1;
+                let mapping: any = {};
+
+                // Heuristic: choose the one with more matches
+                if (matchHeader.index !== -1 && matchHeader.matchCount >= perfHeader.matchCount) {
+                    type = 'match';
+                    headerIndex = matchHeader.index;
+                    mapping = MATCH_MAPPING;
+                } else if (perfHeader.index !== -1) {
+                    type = 'performance';
+                    headerIndex = perfHeader.index;
+                    mapping = PERFORMANCE_MAPPING;
+                } else {
+                    reject(new Error("Could not identify file type (Match or Performance)"));
                     return;
                 }
 
                 // Get raw data with correct header
                 const rawData = XLSX.utils.sheet_to_json(worksheet, { range: headerIndex });
 
-                // Map columns
                 const mappedData = rawData.map((row: any) => {
-                    const newRow: any = {};
-                    // We need to match keys fuzzily
+                    const newRow: any = { _type: type }; // Add internal type flag
                     const keys = Object.keys(row);
 
-                    for (const [expectedKey, mappedKey] of Object.entries(COLUMN_MAPPING)) {
+                    for (const [expectedKey, mappedKey] of Object.entries(mapping)) {
                         // Find matching key in row
                         const foundKey = keys.find(k => cleanText(k) === expectedKey);
                         if (foundKey) {
@@ -86,7 +81,7 @@ export const parseFile = async (file: File): Promise<any[]> => {
                         }
                     }
                     return newRow;
-                }).filter(r => r.Player && r.Opponent); // Basic validation
+                }).filter(r => r.Player); // Basic validation (Player name required)
 
                 resolve(mappedData);
 
@@ -94,34 +89,29 @@ export const parseFile = async (file: File): Promise<any[]> => {
                 reject(err);
             }
         };
-
         reader.readAsArrayBuffer(file);
     });
 };
 
-function findHeaderRowIndexAOA(rows: string[][]): number {
+function findBestHeaderRow(rows: string[][], expectedCols: string[]): { index: number, matchCount: number } {
     let bestMatchCount = 0;
     let bestIndex = -1;
 
     rows.slice(0, 20).forEach((row, index) => {
         if (!Array.isArray(row)) return;
-        const cleanedRow = row.map(cell => cleanText(cell));
+        const cleanedRow = row.map(cell => cleanText(String(cell))); // ensure string
         let matchCount = 0;
 
-        EXPECTED_COLS.forEach(expected => {
+        expectedCols.forEach(expected => {
             if (cleanedRow.includes(expected)) matchCount++;
         });
 
-        if (matchCount > bestMatchCount && matchCount > EXPECTED_COLS.length * 0.5) {
+        // Threshold: Must match at least 2 columns to be considered
+        if (matchCount > bestMatchCount && matchCount >= 2) {
             bestMatchCount = matchCount;
             bestIndex = index;
         }
     });
 
-    return bestIndex;
-}
-
-function findHeaderRowIndex(_lines: string[]): number {
-    // For manual CSV check if needed, but XLSX library handles CSV well usually.
-    return 0;
+    return { index: bestIndex, matchCount: bestMatchCount };
 }
