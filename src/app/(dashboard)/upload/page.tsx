@@ -3,8 +3,11 @@
 import { useState } from "react";
 import { parseFile } from "@/lib/parser";
 import { uploadData } from "@/lib/services/data";
-import { UploadCloud, CheckCircle, AlertTriangle, FileSpreadsheet, Loader2 } from "lucide-react";
+import { UploadCloud, CheckCircle, AlertTriangle, FileSpreadsheet, Loader2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/page-header";
+import { MiniStat } from "@/components/ui/stats-display";
+import { Card } from "@/components/ui/card";
 
 export default function UploadPage() {
     const [isDragging, setIsDragging] = useState(false);
@@ -19,7 +22,6 @@ export default function UploadPage() {
         setStatus({ type: null, message: '' });
 
         try {
-            // 1. Parse
             const parsedData = await parseFile(file);
             setStats(s => ({ ...s, processed: parsedData.length }));
 
@@ -27,7 +29,6 @@ export default function UploadPage() {
                 throw new Error("No valid data found in file.");
             }
 
-            // 2. Upload
             const result = await uploadData(parsedData);
 
             if (result.errors.length > 0) {
@@ -75,15 +76,17 @@ export default function UploadPage() {
 
     return (
         <div className="space-y-8">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold text-white">Upload Match Data</h1>
-                <p className="text-gray-400">Import your Excel/CSV files to update player stats and match analytics.</p>
-            </div>
+            <PageHeader
+                icon={Upload}
+                iconColor="blue"
+                title="Upload Match Data"
+                description="Import your Excel/CSV files to update player stats and match analytics."
+            />
 
-            <div
+            <Card
                 className={cn(
-                    "glass-panel border-2 border-dashed p-12 flex flex-col items-center justify-center text-center transition-all cursor-pointer",
-                    isDragging ? "border-blue-500 bg-blue-500/10 scale-[1.02]" : "border-white/20 hover:border-white/40",
+                    "glass-card border-2 border-dashed p-12 flex flex-col items-center justify-center text-center transition-all cursor-pointer",
+                    isDragging ? "border-primary bg-primary/10 scale-[1.02]" : "border-border hover:border-primary/50",
                     isProcessing && "opacity-50 pointer-events-none"
                 )}
                 onDragOver={onDragOver}
@@ -99,22 +102,22 @@ export default function UploadPage() {
                     onChange={onFileSelect}
                 />
 
-                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
                     {isProcessing ? <Loader2 className="animate-spin text-white" size={32} /> : <UploadCloud className="text-white" size={32} />}
                 </div>
 
-                <h3 className="text-xl font-semibold text-white mb-2">
+                <h3 className="text-xl font-semibold text-foreground mb-2">
                     {isProcessing ? "Processing Data..." : "Drag & Drop or Click to Upload"}
                 </h3>
-                <p className="text-gray-400 max-w-sm">
+                <p className="text-muted-foreground max-w-sm">
                     Supports .xlsx and .csv files with standard myaitrainer columns.
                 </p>
-            </div>
+            </Card>
 
             {status.message && (
                 <div className={cn(
-                    "p-4 rounded-lg flex items-center gap-3",
-                    status.type === 'success' ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"
+                    "p-4 rounded-xl flex items-center gap-3",
+                    status.type === 'success' ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-destructive/10 text-destructive border border-destructive/20"
                 )}>
                     {status.type === 'success' ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
                     <span className="font-medium">{status.message}</span>
@@ -123,24 +126,18 @@ export default function UploadPage() {
 
             {stats.uploaded > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="glass-card p-6 flex items-center gap-4">
-                        <div className="bg-blue-500/20 p-3 rounded-lg text-blue-400">
-                            <FileSpreadsheet size={24} />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-400">Rows Parsed</p>
-                            <p className="text-2xl font-bold text-white">{stats.processed}</p>
-                        </div>
-                    </div>
-                    <div className="glass-card p-6 flex items-center gap-4">
-                        <div className="bg-green-500/20 p-3 rounded-lg text-green-400">
-                            <CheckCircle size={24} />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-400">Records Saved</p>
-                            <p className="text-2xl font-bold text-white">{stats.uploaded}</p>
-                        </div>
-                    </div>
+                    <MiniStat
+                        icon={FileSpreadsheet}
+                        label="Rows Parsed"
+                        value={stats.processed}
+                        color="blue"
+                    />
+                    <MiniStat
+                        icon={CheckCircle}
+                        label="Records Saved"
+                        value={stats.uploaded}
+                        color="green"
+                    />
                 </div>
             )}
         </div>

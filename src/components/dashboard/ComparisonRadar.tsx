@@ -75,17 +75,23 @@ export default function ComparisonRadar({ player1, player2 }: PlayerComparisonPr
         <div className="w-full h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
-                    <PolarGrid stroke="#ffffff20" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                    <PolarGrid stroke="hsl(var(--border))" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
                     <PolarRadiusAxis box={false} tick={false} axisLine={false} />
                     <Tooltip
-                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }}
-                        formatter={(value: number) => value.toFixed(3)}
+                        contentStyle={{
+                            backgroundColor: 'hsl(var(--card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '12px',
+                            color: 'hsl(var(--foreground))'
+                        }}
+                        formatter={(value: number) => value.toFixed(1)}
+                        itemStyle={{ color: 'hsl(var(--foreground))' }}
                     />
                     <Radar
                         name={player1.name}
                         dataKey="A"
-                        stroke="#3b82f6" // Blue
+                        stroke="#3b82f6" // Keep specific color for Player A
                         strokeWidth={3}
                         fill="#3b82f6"
                         fillOpacity={0.3}
@@ -93,12 +99,12 @@ export default function ComparisonRadar({ player1, player2 }: PlayerComparisonPr
                     <Radar
                         name={player2.name}
                         dataKey="B"
-                        stroke="#a855f7" // Purple
+                        stroke="#a855f7" // Keep specific color for Player B
                         strokeWidth={3}
                         fill="#a855f7"
                         fillOpacity={0.3}
                     />
-                    <Legend wrapperStyle={{ color: '#fff' }} />
+                    <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
                 </RadarChart>
             </ResponsiveContainer>
         </div>

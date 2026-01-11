@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -7,10 +6,32 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, TrendingUp, Activity, Dumbbell, Calendar, Target, Shield, ArrowRight } from "lucide-react";
+import {
+    ArrowLeft,
+    TrendingUp,
+    Activity,
+    Dumbbell,
+    Calendar,
+    Target,
+    Shield,
+    ArrowRight,
+    User
+} from "lucide-react";
 import Link from "next/link";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
+import {
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    Tooltip,
+    ResponsiveContainer,
+    CartesianGrid
+} from "recharts";
 import { useRouter } from "next/navigation";
+import { PageHeader } from "@/components/ui/page-header";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
+import { StatCard } from "@/components/ui/stat-card";
+import { ThemeAwareTooltip } from "@/components/ui/theme-aware-tooltip"; // I'll create this helper or inline it
 
 export default function PlayerProfilePage({ params }: { params: { name: string } }) {
     const router = useRouter();
@@ -28,15 +49,23 @@ export default function PlayerProfilePage({ params }: { params: { name: string }
         });
     }, [playerName]);
 
-    if (loading) return <div className="p-8 text-white">Loading profile...</div>;
-    if (!data) return <div className="p-8 text-white">Player not found</div>;
+    if (loading) return <LoadingSkeleton variant="dashboard" />;
+
+    if (!data) return (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+            <h2 className="text-2xl font-bold">Player not found</h2>
+            <Link href="/players">
+                <Button>Return to Player List</Button>
+            </Link>
+        </div>
+    );
 
     const { profile, matches, gym } = data;
 
     // Prepare chart data
     const chartData = matches.map((m: any) => ({
         date: m.date,
-        rating: (m.passing_accuracy * 0.4) + (m.total_shots * 5) + (m.total_tackles * 2), // Rough heuristic again
+        rating: (m.passing_accuracy * 0.4) + (m.total_shots * 5) + (m.total_tackles * 2),
         goals: m.goals,
         passing: m.passing_accuracy
     }));
@@ -58,169 +87,209 @@ export default function PlayerProfilePage({ params }: { params: { name: string }
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
             {/* Header */}
-            <div className="flex items-center gap-4">
-                <Link href="/players">
-                    <Button variant="ghost" className="text-gray-400 hover:text-white hover:bg-white/10">
-                        <ArrowLeft size={20} className="mr-2" /> Back
-                    </Button>
-                </Link>
-                <div>
-                    <h1 className="text-4xl font-bold text-white tracking-tight">{profile.name}</h1>
-                    <p className="text-gray-400 flex items-center gap-2 mt-1">
-                        <Activity size={16} className="text-green-400" />
-                        {profile.games} Matches Played
-                        <span className="bg-white/10 w-1 h-1 rounded-full mx-2" />
-                        {profile.minutes}' Minutes
-                    </p>
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <Link href="/players">
+                        <Button variant="ghost" size="icon" className="rounded-full">
+                            <ArrowLeft size={20} />
+                        </Button>
+                    </Link>
+                    <div>
+                        <h1 className="text-3xl font-bold text-foreground tracking-tight flex items-center gap-2">
+                            {profile.name}
+                        </h1>
+                        <p className="text-muted-foreground flex items-center gap-2 mt-1 text-sm">
+                            <Activity size={14} className="text-green-500" />
+                            {profile.games} Matches
+                            <span className="w-1 h-1 bg-muted-foreground rounded-full" />
+                            {profile.minutes}' Minutes
+                        </p>
+                    </div>
                 </div>
-                <div className="ml-auto flex gap-3">
-                    <Button
-                        onClick={() => router.push('/ai-coach')}
-                        className="bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20"
-                    >
-                        Consult AI Coach <ArrowRight size={16} className="ml-2" />
-                    </Button>
-                </div>
+                <Button
+                    onClick={() => router.push('/ai-coach')}
+                    className="btn-premium shadow-lg shadow-primary/20"
+                >
+                    Consult AI Coach <ArrowRight size={16} className="ml-2" />
+                </Button>
             </div>
 
             {/* Key Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="glass-panel p-6 border-t-4 border-t-blue-500">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="bg-blue-500/20 p-2 rounded-lg text-blue-400">
-                            <Target size={20} />
-                        </div>
-                        <span className="text-xs text-gray-400 font-mono">SEASON</span>
-                    </div>
-                    <div className="text-3xl font-bold text-white mb-1">{profile.goals}</div>
-                    <div className="text-sm text-gray-400">Total Goals</div>
-                </Card>
-                <Card className="glass-panel p-6 border-t-4 border-t-purple-500">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400">
-                            <Activity size={20} />
-                        </div>
-                        <Badge variant="outline" className="border-purple-500/30 text-purple-300">{profile.avgPassing.toFixed(1)}%</Badge>
-                    </div>
-                    <div className="text-3xl font-bold text-white mb-1">{profile.assists}</div>
-                    <div className="text-sm text-gray-400">Total Assists</div>
-                </Card>
-                <Card className="glass-panel p-6 border-t-4 border-t-green-500">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="bg-green-500/20 p-2 rounded-lg text-green-400">
-                            <Shield size={20} />
-                        </div>
-                        <span className="text-green-500 text-xs font-bold">DEFENSE</span>
-                    </div>
-                    <div className="text-3xl font-bold text-white mb-1">{profile.tackles}</div>
-                    <div className="text-sm text-gray-400">Total Tackles</div>
-                </Card>
-                <Card className="glass-panel p-6 border-t-4 border-t-yellow-500">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="bg-yellow-500/20 p-2 rounded-lg text-yellow-400">
-                            <Dumbbell size={20} />
-                        </div>
-                        <span className="text-yellow-500 text-xs font-bold">GYM</span>
-                    </div>
-                    <div className="text-3xl font-bold text-white mb-1">{gym.length}</div>
-                    <div className="text-sm text-gray-400">Exercises Tracked</div>
-                </Card>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                    title="Total Goals"
+                    value={profile.goals}
+                    icon={Target}
+                    color="blue"
+                />
+                <StatCard
+                    title="Avg. Passing"
+                    value={`${profile.avgPassing.toFixed(1)}%`}
+                    icon={Activity}
+                    color="purple"
+                />
+                <StatCard
+                    title="Total Tackles"
+                    value={profile.tackles}
+                    icon={Shield}
+                    color="green"
+                />
+                <StatCard
+                    title="Gym Exercises"
+                    value={gym.length}
+                    icon={Dumbbell}
+                    color="yellow"
+                />
             </div>
 
             {/* Tabs Content */}
             <Tabs defaultValue="matches" className="w-full">
-                <TabsList className="bg-black/20 border border-white/10 p-1">
-                    <TabsTrigger value="matches" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-400">Match History</TabsTrigger>
-                    <TabsTrigger value="gym" className="data-[state=active]:bg-yellow-600 data-[state=active]:text-white text-gray-400">Gym & Physical</TabsTrigger>
+                <TabsList className="bg-muted p-1 rounded-xl w-full md:w-auto grid grid-cols-2 md:inline-flex">
+                    <TabsTrigger
+                        value="matches"
+                        className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                    >
+                        Match History
+                    </TabsTrigger>
+                    <TabsTrigger
+                        value="gym"
+                        className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                    >
+                        Gym & Physical
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="matches" className="space-y-6 mt-6">
                     {/* Charts */}
-                    <Card className="glass-panel p-6 h-[300px]">
-                        <h3 className="text-lg font-bold text-white mb-4">Passing Accuracy Trend</h3>
+                    <Card className="glass-card p-6 h-[350px]">
+                        <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                            <TrendingUp className="text-primary w-5 h-5" />
+                            Passing Accuracy Trend
+                        </h3>
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={chartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                <XAxis dataKey="date" stroke="#9ca3af" fontSize={12} tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} />
-                                <YAxis stroke="#9ca3af" fontSize={12} domain={[0, 100]} />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
-                                    itemStyle={{ color: '#fff' }}
+                                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                                <XAxis
+                                    dataKey="date"
+                                    stroke="hsl(var(--muted-foreground))"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                 />
-                                <Line type="monotone" dataKey="passing" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6' }} activeDot={{ r: 6 }} />
+                                <YAxis
+                                    stroke="hsl(var(--muted-foreground))"
+                                    fontSize={12}
+                                    domain={[0, 100]}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickFormatter={(val) => `${val}%`}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: 'hsl(var(--card))',
+                                        borderColor: 'hsl(var(--border))',
+                                        color: 'hsl(var(--foreground))',
+                                        borderRadius: '12px'
+                                    }}
+                                    itemStyle={{ color: 'hsl(var(--primary))' }}
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="passing"
+                                    stroke="hsl(var(--primary))"
+                                    strokeWidth={3}
+                                    dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
+                                    activeDot={{ r: 6 }}
+                                />
                             </LineChart>
                         </ResponsiveContainer>
                     </Card>
 
-                    {/* Histoy List */}
-                    <div className="space-y-2">
+                    {/* History List */}
+                    <div className="space-y-3">
                         {matches.map((m: any) => (
-                            <div key={m.id} className="glass-panel p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
+                            <Card key={m.id} className="glass-card p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-accent/50 transition-colors cursor-default">
                                 <div className="flex items-center gap-4">
-                                    <div className="bg-white/5 p-3 rounded-lg text-gray-300">
+                                    <div className="bg-primary/10 p-3 rounded-xl text-primary">
                                         <Calendar size={20} />
                                     </div>
                                     <div>
-                                        <p className="text-white font-bold text-lg">{m.opponent}</p>
-                                        <p className="text-sm text-gray-400">{new Date(m.date).toLocaleDateString()}</p>
+                                        <p className="text-foreground font-bold text-lg">{m.opponent}</p>
+                                        <p className="text-sm text-muted-foreground">{new Date(m.date).toLocaleDateString()}</p>
                                     </div>
                                 </div>
-                                <div className="flex gap-6 text-right">
+                                <div className="flex w-full md:w-auto justify-between md:justify-end gap-8 text-right">
                                     <div>
-                                        <p className="text-xs text-gray-400 uppercase">Goals</p>
-                                        <p className="text-white font-mono font-bold text-lg">{m.goals}</p>
+                                        <p className="text-xs text-muted-foreground uppercase font-semibold">Goals</p>
+                                        <p className="text-foreground font-mono font-bold text-lg">{m.goals}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-400 uppercase">Assist</p>
-                                        <p className="text-white font-mono font-bold text-lg">{m.assists}</p>
+                                        <p className="text-xs text-muted-foreground uppercase font-semibold">Assist</p>
+                                        <p className="text-foreground font-mono font-bold text-lg">{m.assists}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-400 uppercase">Passing</p>
-                                        <p className={`font-mono font-bold text-lg ${m.passing_accuracy > 80 ? 'text-green-400' : 'text-blue-400'}`}>
-                                            {m.passing_accuracy.toFixed(0)}%
+                                        <p className="text-xs text-muted-foreground uppercase font-semibold">Passing</p>
+                                        <p className={`font-mono font-bold text-lg ${m.passing_accuracy >= 80 ? 'text-green-500' : m.passing_accuracy >= 70 ? 'text-yellow-500' : 'text-muted-foreground'}`}>
+                                            {Number(m.passing_accuracy).toFixed(0)}%
                                         </p>
                                     </div>
                                 </div>
-                            </div>
+                            </Card>
                         ))}
                     </div>
                 </TabsContent>
 
                 <TabsContent value="gym" className="space-y-6 mt-6">
                     {gym.length === 0 && (
-                        <div className="glass-panel p-12 text-center">
-                            <Dumbbell size={48} className="mx-auto text-gray-600 mb-4" />
-                            <h3 className="text-xl text-white font-bold mb-2">No Gym Data Found</h3>
-                            <p className="text-gray-400">Upload "Performans-Data" to track gym progress.</p>
+                        <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-border rounded-2xl bg-muted/20">
+                            <Dumbbell size={48} className="text-muted-foreground mb-4 opacity-50" />
+                            <h3 className="text-xl text-foreground font-bold mb-2">No Gym Data Found</h3>
+                            <p className="text-muted-foreground">Upload performance data to track gym progress.</p>
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {uniqueExercises.map((ex: any) => {
                             const data = getExerciseData(ex);
                             return (
-                                <Card key={ex} className="glass-panel p-6">
-                                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                                        <Dumbbell className="text-yellow-500" size={18} /> {ex}
+                                <Card key={ex} className="glass-card p-6">
+                                    <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
+                                        <div className="p-2 bg-yellow-500/10 rounded-lg text-yellow-500">
+                                            <Dumbbell size={18} />
+                                        </div>
+                                        {ex}
                                     </h3>
-                                    <div className="h-[200px] w-full">
+                                    <div className="h-[220px] w-full">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <LineChart data={data}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                                <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
-                                                <YAxis stroke="#9ca3af" fontSize={12} />
+                                                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                                                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                                                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
                                                 <Tooltip
-                                                    contentStyle={{ backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
+                                                    contentStyle={{
+                                                        backgroundColor: 'hsl(var(--card))',
+                                                        borderColor: 'hsl(var(--border))',
+                                                        color: 'hsl(var(--foreground))',
+                                                        borderRadius: '8px'
+                                                    }}
                                                 />
-                                                <Line type="step" dataKey="value" stroke="#eab308" strokeWidth={3} dot={{ fill: '#eab308' }} />
+                                                <Line
+                                                    type="stepAfter"
+                                                    dataKey="value"
+                                                    stroke="#eab308"
+                                                    strokeWidth={3}
+                                                    dot={{ fill: '#eab308', r: 4 }}
+                                                    activeDot={{ r: 6 }}
+                                                />
                                             </LineChart>
                                         </ResponsiveContainer>
                                     </div>
                                     <div className="grid grid-cols-4 gap-2 mt-4 text-center">
                                         {data.map((d: any) => (
-                                            <div key={d.name} className="bg-white/5 p-2 rounded">
-                                                <p className="text-xs text-gray-500">{d.name}</p>
-                                                <p className="text-white font-bold">{d.value}</p>
+                                            <div key={d.name} className="bg-muted p-2 rounded-lg">
+                                                <p className="text-[10px] text-muted-foreground uppercase font-bold">{d.name}</p>
+                                                <p className="text-foreground font-bold">{d.value}</p>
                                             </div>
                                         ))}
                                     </div>

@@ -5,7 +5,10 @@ import { getDashboardStats } from "@/lib/services/dashboard";
 import ComparisonRadar from "@/components/dashboard/ComparisonRadar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Swords, Trophy, Footprints } from "lucide-react";
+import { Swords } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
+import { ComboSelect } from "@/components/ui/combo-select";
 
 export default function ComparisonPage() {
     const [loading, setLoading] = useState(true);
@@ -30,19 +33,16 @@ export default function ComparisonPage() {
     const player1 = players.find(p => p.name === player1Id);
     const player2 = players.find(p => p.name === player2Id);
 
-    if (loading) return <div className="p-8 text-white">Loading Arena...</div>;
+    if (loading) return <LoadingSkeleton variant="dashboard" />;
 
     return (
         <div className="space-y-8 relative">
-            <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
-                    <Swords className="text-white" size={24} />
-                </div>
-                <div>
-                    <h1 className="text-3xl font-bold text-white">Head-to-Head</h1>
-                    <p className="text-gray-400">Deep compare player performance metrics.</p>
-                </div>
-            </div>
+            <PageHeader
+                icon={Swords}
+                iconColor="orange"
+                title="Head-to-Head"
+                description="Deep compare player performance metrics."
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {/* Player 1 Details */}
@@ -56,16 +56,16 @@ export default function ComparisonPage() {
                 />
 
                 {/* Center Radar */}
-                <Card className="glass-panel p-6 flex flex-col items-center justify-center min-h-[400px]">
+                <Card className="glass-card p-6 flex flex-col items-center justify-center min-h-[400px]">
                     {player1 && player2 ? (
                         <div className="w-full">
                             <ComparisonRadar player1={player1} player2={player2} />
-                            <div className="mt-6 text-center text-sm text-gray-400">
+                            <div className="mt-6 text-center text-sm text-muted-foreground">
                                 Comparison normalized against league averages
                             </div>
                         </div>
                     ) : (
-                        <div className="text-gray-500">Select two players to compare</div>
+                        <div className="text-muted-foreground">Select two players to compare</div>
                     )}
                 </Card>
 
@@ -82,12 +82,12 @@ export default function ComparisonPage() {
 
             {/* Detailed Stats Comparison Table */}
             {player1 && player2 && (
-                <div className="glass-panel p-6">
-                    <h3 className="text-lg font-bold text-white mb-6">Detailed Stat Breakdown</h3>
-                    <div className="grid grid-cols-3 gap-4 border-b border-white/10 pb-2 mb-2 text-sm text-gray-400 font-semibold uppercase tracking-wider">
-                        <div className="text-blue-400 text-right">{player1.name}</div>
-                        <div className="text-center text-white">Metric</div>
-                        <div className="text-purple-400 text-left">{player2.name}</div>
+                <Card className="glass-card p-6">
+                    <h3 className="text-lg font-bold text-foreground mb-6">Detailed Stat Breakdown</h3>
+                    <div className="grid grid-cols-3 gap-4 border-b border-border pb-2 mb-2 text-sm text-muted-foreground font-semibold uppercase tracking-wider">
+                        <div className="text-blue-500 text-right">{player1.name}</div>
+                        <div className="text-center text-foreground">Metric</div>
+                        <div className="text-purple-500 text-left">{player2.name}</div>
                     </div>
 
                     <StatRow label="Matches Played" val1={player1.games} val2={player2.games} unit="" />
@@ -110,7 +110,7 @@ export default function ComparisonPage() {
                             unit="kg"
                         />
                     ))}
-                </div>
+                </Card>
             )}
         </div>
     );
@@ -120,7 +120,6 @@ function getCommonExercises(p1: any, p2: any) {
     const p1Exercises = p1.gymData || [];
     const p2Exercises = p2.gymData || [];
 
-    // Get all unique exercises from both players
     const allExNames = Array.from(new Set([...p1Exercises.map((e: any) => e.exercise), ...p2Exercises.map((e: any) => e.exercise)]));
 
     return allExNames.map(name => {
@@ -131,12 +130,18 @@ function getCommonExercises(p1: any, p2: any) {
             p1Max: p1Data ? p1Data.maxPR : null,
             p2Max: p2Data ? p2Data.maxPR : null
         };
-    }).filter(e => e.p1Max !== null || e.p2Max !== null); // Show if at least one player has data
+    }).filter(e => e.p1Max !== null || e.p2Max !== null);
 }
 
-function StatRow({ label, val1, val2, unit, highlight }: { label: string, val1: string | number, val2: string | number, unit: string, highlight?: boolean }) {
-    // Determine winner purely for visual highlighting (simple check)
-    // Note: This logic assumes higher is better, which isn't true for Cards.
+interface StatRowProps {
+    label: string;
+    val1: string | number;
+    val2: string | number;
+    unit: string;
+    highlight?: boolean;
+}
+
+function StatRow({ label, val1, val2, unit, highlight }: StatRowProps) {
     const isV1Num = typeof val1 === 'number';
     const isV2Num = typeof val2 === 'number';
     let win1 = false;
@@ -148,18 +153,26 @@ function StatRow({ label, val1, val2, unit, highlight }: { label: string, val1: 
     }
 
     return (
-        <div className={`grid grid-cols-3 gap-2 md:gap-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors ${highlight ? 'bg-white/5' : ''}`}>
-            <div className={`text-right font-mono text-xs md:text-base ${win1 ? 'text-blue-400 font-bold' : 'text-gray-300'}`}>{val1}{unit}</div>
-            <div className="text-center text-gray-400 text-[10px] md:text-sm flex items-center justify-center">{label}</div>
-            <div className={`text-left font-mono text-xs md:text-base ${win2 ? 'text-purple-400 font-bold' : 'text-gray-300'}`}>{val2}{unit}</div>
+        <div className={`grid grid-cols-3 gap-2 md:gap-4 py-3 border-b border-border hover:bg-accent/50 transition-colors ${highlight ? 'bg-accent/30' : ''}`}>
+            <div className={`text-right font-mono text-xs md:text-base ${win1 ? 'text-blue-500 font-bold' : 'text-foreground'}`}>{val1}{unit}</div>
+            <div className="text-center text-muted-foreground text-[10px] md:text-sm flex items-center justify-center">{label}</div>
+            <div className={`text-left font-mono text-xs md:text-base ${win2 ? 'text-purple-500 font-bold' : 'text-foreground'}`}>{val2}{unit}</div>
         </div>
     )
 }
 
-import { ComboSelect } from "@/components/ui/combo-select";
+interface PlayerCardProps {
+    player: any;
+    players: any[];
+    selectedId: string;
+    onSelect: (id: string) => void;
+    color: 'blue' | 'purple';
+    label: string;
+}
 
-function PlayerCard({ player, players, selectedId, onSelect, color, label }: any) {
-    const colorClasses = color === 'blue' ? 'border-blue-500/30 text-blue-400' : 'border-purple-500/30 text-purple-400';
+function PlayerCard({ player, players, selectedId, onSelect, color, label }: PlayerCardProps) {
+    const colorClasses = color === 'blue' ? 'border-blue-500/30' : 'border-purple-500/30';
+    const textColor = color === 'blue' ? 'text-blue-500' : 'text-purple-500';
     const bgClasses = color === 'blue' ? 'bg-blue-500/10 border-blue-500/20' : 'bg-purple-500/10 border-purple-500/20';
 
     const options = players.map((p: any) => ({
@@ -168,8 +181,8 @@ function PlayerCard({ player, players, selectedId, onSelect, color, label }: any
     }));
 
     return (
-        <Card className={`glass-panel p-6 ${colorClasses} border`}>
-            <h3 className={`text-sm font-medium mb-4 ${color === 'blue' ? 'text-blue-400' : 'text-purple-400'}`}>{label}</h3>
+        <Card className={`glass-card p-6 ${colorClasses} border`}>
+            <h3 className={`text-sm font-medium mb-4 ${textColor}`}>{label}</h3>
 
             <ComboSelect
                 options={options}
@@ -182,17 +195,17 @@ function PlayerCard({ player, players, selectedId, onSelect, color, label }: any
 
             {player && (
                 <div className="space-y-4">
-                    <div className={`p-4 rounded-lg border ${bgClasses}`}>
-                        <p className="text-3xl font-bold text-white">{player.goals || 0} <span className="text-lg font-normal text-gray-400">Goals</span></p>
+                    <div className={`p-4 rounded-xl border ${bgClasses}`}>
+                        <p className="text-3xl font-bold text-foreground">{player.goals || 0} <span className="text-lg font-normal text-muted-foreground">Goals</span></p>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 rounded-lg bg-white/5">
-                            <p className="text-xl font-bold text-white">{player.assists || 0}</p>
-                            <p className="text-xs text-gray-400">Assists</p>
+                        <div className="p-4 rounded-xl bg-muted">
+                            <p className="text-xl font-bold text-foreground">{player.assists || 0}</p>
+                            <p className="text-xs text-muted-foreground">Assists</p>
                         </div>
-                        <div className="p-4 rounded-lg bg-white/5">
-                            <p className="text-xl font-bold text-white">{player.minutes || 0}'</p>
-                            <p className="text-xs text-gray-400">Minutes</p>
+                        <div className="p-4 rounded-xl bg-muted">
+                            <p className="text-xl font-bold text-foreground">{player.minutes || 0}'</p>
+                            <p className="text-xs text-muted-foreground">Minutes</p>
                         </div>
                     </div>
                 </div>

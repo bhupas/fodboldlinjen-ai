@@ -1,21 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"; // Or use your client lib
-import { supabase } from "@/lib/supabase/client"; // Use consistent client
+import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { Pencil, Trash2, Shield, ShieldAlert, Search } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+    DataTable,
+    DataTableHeader,
+    DataTableHead,
+    DataTableBody,
+    DataTableRow,
+    DataTableCell,
+    DataTableEmpty,
+    DataTableLoading
+} from "@/components/ui/data-table";
+import { MiniStat } from "@/components/ui/stats-display";
+import { PageHeader } from "@/components/ui/page-header";
+import { Pencil, Trash2, Shield, Search, UserPlus, Users } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
@@ -34,8 +36,6 @@ export default function AdminUsersPage() {
     const [search, setSearch] = useState("");
     const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-
-    // Edit Form State
     const [editRole, setEditRole] = useState("user");
     const [updating, setUpdating] = useState(false);
 
@@ -46,18 +46,13 @@ export default function AdminUsersPage() {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            // Fetch from API to bypass RLS via Service Role
             const res = await fetch('/api/admin/users');
             if (!res.ok) throw new Error("Failed to fetch users");
             const data = await res.json();
-
-            // Check for API errors (like missing service key)
             if (data.error) throw new Error(data.error);
-
             setUsers(data || []);
         } catch (err: any) {
             console.error("Error fetching users:", err);
-            // Fallback to client-side fetch if API fails (e.g. key missing)
             try {
                 const { data, error } = await supabase
                     .from('profiles')
@@ -76,13 +71,9 @@ export default function AdminUsersPage() {
         if (!confirm("Are you sure you want to delete this user? This cannot be undone.")) return;
 
         try {
-            const res = await fetch(`/api/admin/users?id=${userId}`, {
-                method: 'DELETE'
-            });
+            const res = await fetch(`/api/admin/users?id=${userId}`, { method: 'DELETE' });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Failed to delete");
-
-            // Optimistic update
             setUsers(users.filter(u => u.id !== userId));
         } catch (err: any) {
             alert(err.message);
@@ -96,15 +87,10 @@ export default function AdminUsersPage() {
             const res = await fetch('/api/admin/users', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: selectedUser.id,
-                    role: editRole
-                })
+                body: JSON.stringify({ id: selectedUser.id, role: editRole })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Failed to update");
-
-            // Optimistic update
             setUsers(users.map(u => u.id === selectedUser.id ? { ...u, role: editRole } : u));
             setIsEditDialogOpen(false);
         } catch (err: any) {
@@ -120,116 +106,137 @@ export default function AdminUsersPage() {
         (u.last_name?.toLowerCase().includes(search.toLowerCase()))
     );
 
+    const getRoleBadge = (role: string) => {
+        const styles: Record<string, string> = {
+            admin: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300',
+            coach: 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300',
+            user: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300',
+        };
+        return styles[role] || styles.user;
+    };
+
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-                        <Shield className="text-blue-500" />
-                        User Management
-                    </h1>
-                    <p className="text-gray-400 mt-1">Manage system access and roles</p>
-                </div>
-                {/* Search */}
-                <div className="relative w-full md:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                    <Input
-                        placeholder="Search users..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="pl-9 bg-black/20 border-white/10 text-white"
-                    />
-                </div>
+            {/* Header */}
+            <PageHeader
+                icon={Users}
+                iconColor="blue"
+                title="User Management"
+                description="Manage system access and roles"
+                actions={
+                    <div className="relative w-full md:w-80">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search users..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="pl-11 h-11"
+                        />
+                    </div>
+                }
+            />
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <MiniStat
+                    icon={Users}
+                    label="Total Users"
+                    value={users.length}
+                    color="blue"
+                />
+                <MiniStat
+                    icon={Shield}
+                    label="Admins"
+                    value={users.filter(u => u.role === 'admin').length}
+                    color="purple"
+                />
+                <MiniStat
+                    icon={UserPlus}
+                    label="Coaches"
+                    value={users.filter(u => u.role === 'coach').length}
+                    color="green"
+                />
             </div>
 
-            <Card className="glass-panel border-0 bg-black/20 p-6 overflow-x-auto">
-                <Table>
-                    <TableHeader>
-                        <TableRow className="border-white/10 hover:bg-white/5">
-                            <TableHead className="text-gray-400">User</TableHead>
-                            <TableHead className="text-gray-400">Email</TableHead>
-                            <TableHead className="text-gray-400">Role</TableHead>
-                            <TableHead className="text-gray-400">Joined</TableHead>
-                            <TableHead className="text-right text-gray-400">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center py-8 text-gray-400">
-                                    Loading users...
-                                </TableCell>
-                            </TableRow>
-                        ) : filteredUsers.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center py-8 text-gray-400">
-                                    No users found.
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            filteredUsers.map((user) => (
-                                <TableRow key={user.id} className="border-white/10 hover:bg-white/5">
-                                    <TableCell className="font-medium text-white">
-                                        {user.first_name} {user.last_name || ""}
-                                        {!user.first_name && !user.last_name && "N/A"}
-                                    </TableCell>
-                                    <TableCell className="text-gray-300">{user.email}</TableCell>
-                                    <TableCell>
-                                        <span className={`px-2 py-1 rounded text-xs font-medium ${user.role === 'admin'
-                                            ? 'bg-purple-500/20 text-purple-200 border border-purple-500/30'
-                                            : 'bg-blue-500/20 text-blue-200 border border-blue-500/30'
-                                            }`}>
-                                            {user.role}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="text-gray-400">
-                                        {new Date(user.created_at).toLocaleDateString()}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="hover:bg-blue-500/20 hover:text-blue-300"
-                                                onClick={() => {
-                                                    setSelectedUser(user);
-                                                    setEditRole(user.role);
-                                                    setIsEditDialogOpen(true);
-                                                }}
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="hover:bg-red-500/20 hover:text-red-300"
-                                                onClick={() => handleDelete(user.id)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+            {/* Users Table */}
+            <DataTable>
+                <DataTableHeader>
+                    <DataTableHead>User</DataTableHead>
+                    <DataTableHead>Email</DataTableHead>
+                    <DataTableHead>Role</DataTableHead>
+                    <DataTableHead>Joined</DataTableHead>
+                    <DataTableHead className="text-right">Actions</DataTableHead>
+                </DataTableHeader>
+                <DataTableBody>
+                    {loading ? (
+                        <DataTableLoading colSpan={5} message="Loading users..." />
+                    ) : filteredUsers.length === 0 ? (
+                        <DataTableEmpty colSpan={5} message="No users found." />
+                    ) : (
+                        filteredUsers.map((user) => (
+                            <DataTableRow key={user.id}>
+                                <DataTableCell className="font-medium">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+                                            {(user.first_name?.[0] || user.email?.[0] || '?').toUpperCase()}
                                         </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </Card>
+                                        <span>{user.first_name} {user.last_name || ""}</span>
+                                        {!user.first_name && !user.last_name && <span className="text-muted-foreground">N/A</span>}
+                                    </div>
+                                </DataTableCell>
+                                <DataTableCell className="text-muted-foreground">{user.email}</DataTableCell>
+                                <DataTableCell>
+                                    <span className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${getRoleBadge(user.role)}`}>
+                                        {user.role}
+                                    </span>
+                                </DataTableCell>
+                                <DataTableCell className="text-muted-foreground">
+                                    {new Date(user.created_at).toLocaleDateString()}
+                                </DataTableCell>
+                                <DataTableCell className="text-right">
+                                    <div className="flex justify-end gap-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="rounded-xl hover:bg-primary/10 hover:text-primary"
+                                            onClick={() => {
+                                                setSelectedUser(user);
+                                                setEditRole(user.role);
+                                                setIsEditDialogOpen(true);
+                                            }}
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="rounded-xl hover:bg-destructive/10 hover:text-destructive"
+                                            onClick={() => handleDelete(user.id)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </DataTableCell>
+                            </DataTableRow>
+                        ))
+                    )}
+                </DataTableBody>
+            </DataTable>
 
             {/* Edit Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                <DialogContent className="bg-[#1e293b] border-white/10 text-white sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>Edit User Role</DialogTitle>
+                        <DialogTitle className="text-xl font-bold">Edit User Role</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                             <Label htmlFor="role">Role</Label>
                             <Select value={editRole} onValueChange={setEditRole}>
-                                <SelectTrigger className="bg-white/5 border-white/10">
+                                <SelectTrigger className="h-11">
                                     <SelectValue placeholder="Select role" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-[#1e293b] border-white/10 text-white">
+                                <SelectContent>
                                     <SelectItem value="user">User</SelectItem>
                                     <SelectItem value="admin">Admin</SelectItem>
                                     <SelectItem value="coach">Coach</SelectItem>
@@ -237,14 +244,14 @@ export default function AdminUsersPage() {
                             </Select>
                         </div>
                     </div>
-                    <div className="flex justify-end gap-3">
-                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="border-white/10 hover:bg-white/5">
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                             Cancel
                         </Button>
-                        <Button onClick={handleUpdate} disabled={updating} className="bg-blue-600 hover:bg-blue-500">
+                        <Button onClick={handleUpdate} disabled={updating}>
                             {updating ? "Saving..." : "Save Changes"}
                         </Button>
-                    </div>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

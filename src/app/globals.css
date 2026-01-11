@@ -26,12 +26,12 @@
     --border: 217 33% 20%;
     --input: 217 33% 20%;
     --ring: 217 91% 60%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 
   /* ========== Light Theme ========== */
   .light {
-    --background: 0 0% 99%;
+    --background: 0 0% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
@@ -50,7 +50,7 @@
     --border: 220 13% 90%;
     --input: 220 13% 90%;
     --ring: 217 91% 55%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 }
 
@@ -78,41 +78,27 @@
   h4,
   h5,
   h6 {
-    @apply font-semibold tracking-tight;
+    @apply font-semibold tracking-tight text-foreground;
     line-height: 1.2;
   }
-
-  h1 {
-    @apply text-4xl md:text-5xl;
-  }
-
-  h2 {
-    @apply text-3xl md:text-4xl;
-  }
-
-  h3 {
-    @apply text-xl md:text-2xl;
-  }
 }
 
-/* ========== Glass Panel ========== */
-.glass-panel {
-  @apply bg-card border border-border shadow-sm rounded-xl;
-}
-
-.light .glass-panel {
-  @apply bg-white shadow-md;
-}
-
+/* ========== Modern Glass Panel ========== */
+.glass-panel,
 .glass-card {
-  @apply bg-card border border-border rounded-lg transition-all duration-200;
+  @apply bg-card border border-border shadow-sm rounded-2xl transition-all duration-200;
+}
+
+.light .glass-panel,
+.light .glass-card {
+  @apply bg-white shadow-md border-gray-200;
 }
 
 .glass-card:hover {
-  @apply shadow-md;
+  @apply shadow-lg;
 }
 
-/* ========== Gradient Text - FIXED ========== */
+/* ========== Gradient Text ========== */
 .gradient-text {
   background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
   -webkit-background-clip: text;
@@ -154,12 +140,6 @@
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: none;
-  /* Remove animation that was breaking it */
-}
-
 /* ========== Premium Button ========== */
 .btn-premium {
   @apply relative overflow-hidden px-6 py-3 rounded-xl font-semibold;
@@ -191,7 +171,7 @@
 
 /* ========== Skeleton ========== */
 .skeleton {
-  @apply bg-muted rounded-lg animate-pulse;
+  @apply bg-muted rounded-xl animate-pulse;
 }
 
 /* ========== Scrollbar ========== */
@@ -227,159 +207,43 @@ a:focus-visible {
 }
 
 /* ========================================
-   LIGHT MODE TEXT FIXES
+   MODERN ROUNDED COMPONENTS
    ======================================== */
 
-.light .text-white {
-  color: hsl(var(--foreground)) !important;
+/* All buttons more rounded */
+button {
+  @apply rounded-xl;
 }
 
-.light .text-gray-300,
-.light .text-gray-400 {
-  color: hsl(var(--muted-foreground)) !important;
+/* Cards more rounded */
+.card,
+[class*="Card"] {
+  @apply rounded-2xl;
 }
 
-.light .text-gray-500,
-.light .text-gray-600 {
-  color: hsl(220 9% 50%) !important;
-}
-
-/* Keep white text on colored backgrounds */
-.light .bg-blue-600,
-.light .bg-blue-500,
-.light .bg-purple-600,
-.light .bg-purple-500,
-.light .bg-green-600,
-.light .bg-green-500,
-.light .btn-premium {
-  color: white !important;
-}
-
-.light .bg-blue-600 *,
-.light .bg-purple-600 *,
-.light .bg-green-600 *,
-.light .btn-premium * {
-  color: white !important;
+/* Inputs more rounded */
+input,
+select,
+textarea {
+  @apply rounded-xl;
 }
 
 /* ========================================
-   LIGHT MODE BACKGROUND FIXES
+   ACCESSIBILITY
    ======================================== */
 
-.light .bg-\[#0f172a\],
-.light .bg-\[#0a0a0f\],
-.light .bg-\[#1e293b\] {
-  background-color: hsl(var(--background)) !important;
-}
-
-.light .bg-white\/5,
-.light .bg-white\/10,
-.light .bg-black\/20 {
-  background-color: hsl(var(--secondary)) !important;
-}
-
-.light .hover\:bg-white\/5:hover,
-.light .hover\:bg-white\/10:hover {
-  background-color: hsl(var(--accent)) !important;
-}
-
-/* ========================================
-   LIGHT MODE BORDER FIXES  
-   ======================================== */
-
-.light .border-white\/5,
-.light .border-white\/10,
-.light .border-white\/20 {
-  border-color: hsl(var(--border)) !important;
-}
-
-/* ========================================
-   LIGHT MODE COLOR FIXES
-   ======================================== */
-
-.light .text-blue-400 {
-  color: #2563eb !important;
-}
-
-.light .text-purple-400 {
-  color: #7c3aed !important;
-}
-
-.light .text-green-400 {
-  color: #16a34a !important;
-}
-
-.light .text-yellow-400 {
-  color: #ca8a04 !important;
-}
-
-.light .text-pink-400 {
-  color: #db2777 !important;
-}
-
-.light .text-red-400 {
-  color: #dc2626 !important;
-}
-
-.light .text-orange-400 {
-  color: #ea580c !important;
-}
-
-/* Chart colors in light mode */
-.light .recharts-text {
-  fill: hsl(var(--muted-foreground)) !important;
-}
-
-.light .recharts-cartesian-grid line {
-  stroke: hsl(var(--border)) !important;
-}
-
-/* ========================================
-   LIGHT MODE TABLE FIXES
-   ======================================== */
-
-.light table {
-  background-color: white;
-}
-
-.light thead {
-  background-color: #f8fafc !important;
-}
-
-.light th {
-  color: #1e293b !important;
-  font-weight: 600 !important;
-  border-bottom: 2px solid #e2e8f0 !important;
-}
-
-.light td {
-  color: #334155 !important;
-  border-bottom: 1px solid #e2e8f0 !important;
-}
-
-.light tbody tr:hover {
-  background-color: #f1f5f9 !important;
-}
-
-/* ========================================
-   ACCESSIBILITY IMPROVEMENTS
-   ======================================== */
-
-/* Minimum touch target size */
 button,
 a,
 input,
 select,
 textarea {
-  min-height: 44px;
+  min-height: 40px;
 }
 
-/* Better link styling */
 a {
   @apply transition-colors;
 }
 
-/* Reduced motion for users who prefer it */
 @media (prefers-reduced-motion: reduce) {
 
   *,
