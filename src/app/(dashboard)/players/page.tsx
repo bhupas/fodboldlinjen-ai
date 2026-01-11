@@ -27,7 +27,7 @@ import { FilterPanel, FilterRow, FilterSection } from "@/components/ui/filter-pa
 import { PageHeader } from "@/components/ui/page-header";
 import { CountBadge } from "@/components/ui/stats-display";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
-import { Search, Users, Dumbbell, Download, Ban } from "lucide-react";
+import { Search, Users, Dumbbell, Download, Ban, SlidersHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
@@ -44,7 +44,9 @@ export default function PlayerStatsPage() {
     const [minGames, setMinGames] = useState(0);
     const [minGoals, setMinGoals] = useState(0);
     const [minAssists, setMinAssists] = useState(0);
-    const [ageRange, setAgeRange] = useState<[number, number]>([0, 99]);
+    const [ageRange, setAgeRange] = useState<[number, number]>([15, 40]);
+    const [includeUnknownAge, setIncludeUnknownAge] = useState(true);
+    const [showFilters, setShowFilters] = useState(false);
     const [sortBy, setSortBy] = useState("rating");
 
     // Profile Map for Age
@@ -182,8 +184,13 @@ export default function PlayerStatsPage() {
         if (minAssists > 0) res = res.filter(p => p.assists >= minAssists);
 
         // Age Filter
-        if (ageRange[0] > 0 || ageRange[1] < 99) {
-            res = res.filter(p => p.age !== null && p.age >= ageRange[0] && p.age <= ageRange[1]);
+        if (ageRange[0] > 15 || ageRange[1] < 40) {
+            res = res.filter(p => {
+                if (p.age === null) return includeUnknownAge;
+                return p.age >= ageRange[0] && p.age <= ageRange[1];
+            });
+        } else if (!includeUnknownAge) {
+            res = res.filter(p => p.age !== null);
         }
 
         res.sort((a, b) => {
@@ -205,7 +212,7 @@ export default function PlayerStatsPage() {
 
     useEffect(() => {
         setPage(1);
-    }, [search, minGames, minGoals, minAssists, sortBy, opponentFilter, startDate, endDate, ageRange]);
+    }, [search, minGames, minGoals, minAssists, sortBy, opponentFilter, startDate, endDate, ageRange, includeUnknownAge]);
 
     const paginatedPlayers = filteredPlayers.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
     const totalPages = Math.ceil(filteredPlayers.length / ITEMS_PER_PAGE);
@@ -268,120 +275,145 @@ export default function PlayerStatsPage() {
 
             {/* Filter Panel */}
             <FilterPanel>
-                <FilterRow>
-                    {/* Search */}
-                    <div className="relative">
-                        <Label className="text-xs text-muted-foreground mb-2 block">Search Player</Label>
-                        <ComboSelect
-                            options={playerOptions}
-                            value={search}
-                            onValueChange={setSearch}
-                            placeholder="Select player"
-                            searchPlaceholder="Type to search..."
-                        />
-                        {search && (
-                            <button onClick={() => setSearch('')} className="text-xs text-destructive mt-1 hover:underline text-right w-full block">Clear</button>
-                        )}
-                    </div>
-
-                    {/* Opponent Filter */}
-                    <div>
-                        <Label className="text-xs text-muted-foreground mb-2 block">Opposition</Label>
-                        <ComboSelect
-                            options={[{ label: "All Opponents", value: "all" }, ...opponentOptions]}
-                            value={opponentFilter || "all"}
-                            onValueChange={(val) => setOpponentFilter(val === "all" ? "" : val)}
-                            placeholder="Select opponent"
-                            searchPlaceholder="Type to search..."
-                        />
-                        {opponentFilter && (
-                            <button onClick={() => setOpponentFilter('')} className="text-xs text-destructive mt-1 hover:underline">Clear</button>
-                        )}
-                    </div>
-
-                    {/* Date Range */}
-                    <div className="col-span-1 md:col-span-2 flex gap-4">
-                        <div className="flex-1">
-                            <Label className="text-xs text-muted-foreground mb-2 block">Start Date</Label>
-                            <Input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="h-10"
+                <div className="flex flex-col gap-4">
+                    <div className="flex flex-col md:flex-row gap-4 items-end">
+                        {/* Search */}
+                        <div className="flex-1 relative w-full">
+                            <Label className="text-xs text-muted-foreground mb-2 block">Search Player</Label>
+                            <ComboSelect
+                                options={playerOptions}
+                                value={search}
+                                onValueChange={setSearch}
+                                placeholder="Select player"
+                                searchPlaceholder="Type to search..."
                             />
+                            {search && (
+                                <button onClick={() => setSearch('')} className="text-xs text-destructive mt-1 hover:underline text-right w-full block">Clear</button>
+                            )}
                         </div>
-                        <div className="flex-1">
-                            <Label className="text-xs text-muted-foreground mb-2 block">End Date</Label>
-                            <Input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                className="h-10"
-                            />
-                        </div>
-                    </div>
-                </FilterRow>
 
-                <FilterSection separator>
-                    {/* Sort */}
-                    <div className="w-full md:w-64">
-                        <Label className="text-xs text-muted-foreground mb-2 block">Sort By</Label>
-                        <Select value={sortBy} onValueChange={setSortBy}>
-                            <SelectTrigger className="h-10">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="rating">🔥 Performance</SelectItem>
-                                <SelectItem value="games">📅 Matches</SelectItem>
-                                <SelectItem value="goals">⚽ Goals</SelectItem>
-                                <SelectItem value="assists">👟 Assists</SelectItem>
-                                <SelectItem value="passing">🎯 Passing %</SelectItem>
-                                <SelectItem value="minutes">⏱ Minutes</SelectItem>
-                                <SelectItem value="gym">🏋️ Gym (Max PR)</SelectItem>
-                                <SelectItem value="age">🎂 Age</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        {/* Sort */}
+                        <div className="w-full md:w-48">
+                            <Label className="text-xs text-muted-foreground mb-2 block">Sort By</Label>
+                            <Select value={sortBy} onValueChange={setSortBy}>
+                                <SelectTrigger className="h-10">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="rating">🔥 Performance</SelectItem>
+                                    <SelectItem value="games">📅 Matches</SelectItem>
+                                    <SelectItem value="goals">⚽ Goals</SelectItem>
+                                    <SelectItem value="assists">👟 Assists</SelectItem>
+                                    <SelectItem value="passing">🎯 Passing %</SelectItem>
+                                    <SelectItem value="minutes">⏱ Minutes</SelectItem>
+                                    <SelectItem value="gym">🏋️ Gym (Max PR)</SelectItem>
+                                    <SelectItem value="age">🎂 Age</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <Button
+                            variant={showFilters ? "secondary" : "outline"}
+                            className="gap-2 h-10"
+                            onClick={() => setShowFilters(!showFilters)}
+                        >
+                            <SlidersHorizontal size={16} />
+                            Filters
+                            {(minGames > 0 || minGoals > 0 || minAssists > 0 || opponentFilter || startDate || endDate) && (
+                                <Badge variant="secondary" className="ml-1 px-1 h-5 text-[10px]">!</Badge>
+                            )}
+                        </Button>
                     </div>
 
-                    {/* Sliders Area */}
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="space-y-3">
-                            <div className="flex justify-between">
-                                <Label className="text-muted-foreground text-xs uppercase font-bold">Min Matches</Label>
-                                <span className="text-primary text-xs font-mono">{minGames}</span>
+                    {showFilters && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 border-t animate-in slide-in-from-top-2 fade-in duration-200">
+                            {/* Opposition */}
+                            <div>
+                                <Label className="text-xs text-muted-foreground mb-2 block">Opposition</Label>
+                                <ComboSelect
+                                    options={[{ label: "All Opponents", value: "all" }, ...opponentOptions]}
+                                    value={opponentFilter || "all"}
+                                    onValueChange={(val) => setOpponentFilter(val === "all" ? "" : val)}
+                                    placeholder="Select opponent"
+                                    searchPlaceholder="Type to search..."
+                                />
+                                {opponentFilter && (
+                                    <button onClick={() => setOpponentFilter('')} className="text-xs text-destructive mt-1 hover:underline">Clear</button>
+                                )}
                             </div>
-                            <Slider value={[minGames]} max={20} step={1} onValueChange={(val) => setMinGames(val[0])} className="py-2" />
-                        </div>
-                        <div className="space-y-3">
-                            <div className="flex justify-between">
-                                <Label className="text-muted-foreground text-xs uppercase font-bold">Min Goals</Label>
-                                <span className="text-green-500 text-xs font-mono">{minGoals}</span>
+
+                            {/* Date Range */}
+                            <div className="col-span-1 md:col-span-2 flex gap-4">
+                                <div className="flex-1">
+                                    <Label className="text-xs text-muted-foreground mb-2 block">Start Date</Label>
+                                    <Input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="h-10"
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <Label className="text-xs text-muted-foreground mb-2 block">End Date</Label>
+                                    <Input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="h-10"
+                                    />
+                                </div>
                             </div>
-                            <Slider value={[minGoals]} max={10} step={1} onValueChange={(val) => setMinGoals(val[0])} className="py-2" />
-                        </div>
-                        <div className="space-y-3">
-                            <div className="flex justify-between">
-                                <Label className="text-muted-foreground text-xs uppercase font-bold">Min Assists</Label>
-                                <span className="text-purple-500 text-xs font-mono">{minAssists}</span>
+
+                            {/* Sliders */}
+                            <div className="space-y-3">
+                                <div className="flex justify-between">
+                                    <Label className="text-muted-foreground text-xs uppercase font-bold">Age: {ageRange[0]} - {ageRange[1]}</Label>
+                                    <div className="flex items-center gap-2">
+                                        <label className="text-[10px] flex items-center gap-1 cursor-pointer select-none">
+                                            <input
+                                                type="checkbox"
+                                                checked={includeUnknownAge}
+                                                onChange={(e) => setIncludeUnknownAge(e.target.checked)}
+                                                className="accent-primary rounded-sm w-3 h-3"
+                                            />
+                                            Inc. Unknown
+                                        </label>
+                                    </div>
+                                </div>
+                                <Slider
+                                    value={ageRange}
+                                    max={40}
+                                    min={15}
+                                    step={1}
+                                    onValueChange={(val: any) => setAgeRange(val)}
+                                    className="py-2"
+                                />
                             </div>
-                            <Slider value={[minAssists]} max={10} step={1} onValueChange={(val) => setMinAssists(val[0])} className="py-2" />
-                        </div>
-                        <div className="space-y-3">
-                            <div className="flex justify-between">
-                                <Label className="text-muted-foreground text-xs uppercase font-bold">Age Range: {ageRange[0]} - {ageRange[1]}</Label>
-                                <span className="text-blue-500 text-xs font-mono">{ageRange[0]}-{ageRange[1]}</span>
+
+                            <div className="space-y-3">
+                                <div className="flex justify-between">
+                                    <Label className="text-muted-foreground text-xs uppercase font-bold">Min Matches</Label>
+                                    <span className="text-primary text-xs font-mono">{minGames}</span>
+                                </div>
+                                <Slider value={[minGames]} max={20} step={1} onValueChange={(val) => setMinGames(val[0])} className="py-2" />
                             </div>
-                            <Slider
-                                value={ageRange}
-                                max={40}
-                                min={10}
-                                step={1}
-                                onValueChange={(val: any) => setAgeRange(val)}
-                                className="py-2"
-                            />
+                            <div className="space-y-3">
+                                <div className="flex justify-between">
+                                    <Label className="text-muted-foreground text-xs uppercase font-bold">Min Goals</Label>
+                                    <span className="text-green-500 text-xs font-mono">{minGoals}</span>
+                                </div>
+                                <Slider value={[minGoals]} max={10} step={1} onValueChange={(val) => setMinGoals(val[0])} className="py-2" />
+                            </div>
+                            <div className="space-y-3">
+                                <div className="flex justify-between">
+                                    <Label className="text-muted-foreground text-xs uppercase font-bold">Min Assists</Label>
+                                    <span className="text-purple-500 text-xs font-mono">{minAssists}</span>
+                                </div>
+                                <Slider value={[minAssists]} max={10} step={1} onValueChange={(val) => setMinAssists(val[0])} className="py-2" />
+                            </div>
                         </div>
-                    </div>
-                </FilterSection>
+                    )}
+                </div>
             </FilterPanel>
 
             {/* Results Table */}

@@ -37,9 +37,10 @@ export async function POST(req: NextRequest) {
 
         const { data: rawStats, error } = await query;
         if (error) throw error;
-        if (!rawStats || rawStats.length === 0) {
-            return NextResponse.json({ error: "No data found" }, { status: 404 });
-        }
+        if (error) throw error;
+        // if (!rawStats || rawStats.length === 0) {
+        //     return NextResponse.json({ error: "No data found" }, { status: 404 });
+        // }
 
         // 2. Fetch Performance Data
         let perfQuery = supabase.from('performance_stats').select('*');
