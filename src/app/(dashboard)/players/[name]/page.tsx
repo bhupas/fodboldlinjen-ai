@@ -4,20 +4,17 @@ import { useEffect, useState } from "react";
 import { getPlayerStats } from "@/lib/services/player";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-    ArrowLeft,
-    TrendingUp,
     Activity,
     Dumbbell,
     Calendar,
     Target,
     Shield,
     ArrowRight,
+    TrendingUp,
     User
 } from "lucide-react";
-import Link from "next/link";
 import {
     LineChart,
     Line,
@@ -31,7 +28,7 @@ import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { StatCard } from "@/components/ui/stat-card";
-import { ThemeAwareTooltip } from "@/components/ui/theme-aware-tooltip"; // I'll create this helper or inline it
+import Link from "next/link";
 
 export default function PlayerProfilePage({ params }: { params: { name: string } }) {
     const router = useRouter();
@@ -84,35 +81,33 @@ export default function PlayerProfilePage({ params }: { params: { name: string }
 
     const uniqueExercises = Array.from(new Set(gym.map((g: any) => g.exercise)));
 
+    const headerDescription = (
+        <div className="flex items-center gap-2">
+            <Activity size={14} className="text-green-500" />
+            <span>{profile.games} Matches</span>
+            <span className="w-1 h-1 bg-muted-foreground rounded-full" />
+            <span>{profile.minutes}' Minutes</span>
+        </div>
+    );
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
             {/* Header */}
-            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Link href="/players">
-                        <Button variant="ghost" size="icon" className="rounded-full">
-                            <ArrowLeft size={20} />
-                        </Button>
-                    </Link>
-                    <div>
-                        <h1 className="text-3xl font-bold text-foreground tracking-tight flex items-center gap-2">
-                            {profile.name}
-                        </h1>
-                        <p className="text-muted-foreground flex items-center gap-2 mt-1 text-sm">
-                            <Activity size={14} className="text-green-500" />
-                            {profile.games} Matches
-                            <span className="w-1 h-1 bg-muted-foreground rounded-full" />
-                            {profile.minutes}' Minutes
-                        </p>
-                    </div>
-                </div>
-                <Button
-                    onClick={() => router.push('/ai-coach')}
-                    className="btn-premium shadow-lg shadow-primary/20"
-                >
-                    Consult AI Coach <ArrowRight size={16} className="ml-2" />
-                </Button>
-            </div>
+            <PageHeader
+                title={profile.name}
+                description={headerDescription}
+                icon={User} // Using User icon since we don't have a jersey icon accessible right now
+                iconColor="purple"
+                backUrl="/players"
+                actions={
+                    <Button
+                        onClick={() => router.push('/ai-coach')}
+                        className="btn-premium shadow-lg shadow-primary/20"
+                    >
+                        Consult AI Coach <ArrowRight size={16} className="ml-2" />
+                    </Button>
+                }
+            />
 
             {/* Key Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

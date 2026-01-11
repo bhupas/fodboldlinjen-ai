@@ -13,7 +13,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen w-full relative flex flex-col items-center overflow-hidden bg-background text-foreground">
-      {theme === 'dark' && <BackgroundBeams />}
+      <BackgroundBeams />
 
       {/* Nav */}
       <nav className="w-full max-w-7xl mx-auto p-6 flex items-center justify-between relative z-10">

@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Loader2, Sparkles, Mail, Lock, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { useTheme } from "@/lib/theme-context";
+import { BackgroundBeams } from "@/components/aceternity/background-beams";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -17,6 +19,7 @@ export default function LoginPage() {
     const [view, setView] = useState<'signin' | 'signup' | 'forgot_password'>('signin');
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
     const router = useRouter();
+    const { theme } = useTheme();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -65,21 +68,24 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-300">
             {/* Background Decoration */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-blue-600/15 rounded-full blur-[150px] animate-pulse" />
-                <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] bg-purple-600/15 rounded-full blur-[150px] animate-pulse" style={{ animationDelay: '1s' }} />
-                <div className="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[40%] h-[40%] bg-pink-600/10 rounded-full blur-[120px]" />
-            </div>
+            {theme === 'dark' ? (
+                <BackgroundBeams className="opacity-40" />
+            ) : (
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-blue-100/50 rounded-full blur-[150px] animate-pulse" />
+                    <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] bg-purple-100/50 rounded-full blur-[150px] animate-pulse" style={{ animationDelay: '1s' }} />
+                </div>
+            )}
 
             {/* Back to Home Link */}
-            <Link href="/" className="absolute top-6 left-6 text-gray-400 hover:text-white flex items-center gap-2 text-sm transition-colors z-20">
+            <Link href="/" className="absolute top-6 left-6 text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm transition-colors z-20">
                 <ArrowLeft size={16} />
                 Back to Home
             </Link>
 
-            <Card className="w-full max-w-[440px] p-10 glass-panel rounded-3xl relative z-10 text-white border-white/10">
+            <Card className="w-full max-w-[440px] p-10 glass-card relative z-10 shadow-2xl">
                 {/* Logo */}
                 <div className="flex justify-center mb-8">
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30 animate-pulse-glow">
@@ -89,10 +95,10 @@ export default function LoginPage() {
 
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">
                         {view === 'signin' ? "Welcome Back" : view === 'signup' ? "Join the Elite" : "Reset Password"}
                     </h1>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                         {view === 'signin' ? "Sign in to access your tactical dashboard" :
                             view === 'signup' ? "Create an account to start analyzing" :
                                 "Enter your email to receive a reset link"
@@ -104,8 +110,8 @@ export default function LoginPage() {
                     {/* Status Message */}
                     {message && (
                         <div className={`p-4 rounded-xl text-sm flex items-center gap-3 ${message.type === 'success'
-                                ? 'bg-green-500/10 text-green-300 border border-green-500/20'
-                                : 'bg-red-500/10 text-red-300 border border-red-500/20'
+                            ? 'bg-green-500/10 text-green-600 dark:text-green-300 border border-green-500/20'
+                            : 'bg-destructive/10 text-destructive border border-destructive/20'
                             }`}>
                             {message.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
                             {message.text}
@@ -119,16 +125,16 @@ export default function LoginPage() {
                     } className="space-y-5">
 
                         <div className="space-y-2">
-                            <Label htmlFor="email" className="text-gray-300 font-medium text-sm">Email Address</Label>
+                            <Label htmlFor="email" className="font-medium text-sm">Email Address</Label>
                             <div className="relative">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
                                 <Input
                                     id="email"
                                     type="email"
                                     placeholder="coach@club.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="pl-12 bg-white/5 border-white/10 text-white placeholder:text-gray-600 h-12 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                                    className="pl-12 h-12 rounded-xl transition-all"
                                     required
                                 />
                             </div>
@@ -137,11 +143,11 @@ export default function LoginPage() {
                         {view !== 'forgot_password' && (
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
-                                    <Label htmlFor="password" className="text-gray-300 font-medium text-sm">Password</Label>
+                                    <Label htmlFor="password" className="font-medium text-sm">Password</Label>
                                     {view === 'signin' && (
                                         <button
                                             type="button"
-                                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                            className="text-xs text-primary hover:text-primary/80 transition-colors"
                                             onClick={() => setView('forgot_password')}
                                         >
                                             Forgot password?
@@ -149,14 +155,14 @@ export default function LoginPage() {
                                     )}
                                 </div>
                                 <div className="relative">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
                                     <Input
                                         id="password"
                                         type="password"
                                         placeholder="••••••••"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="pl-12 bg-white/5 border-white/10 text-white placeholder:text-gray-600 h-12 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                                        className="pl-12 h-12 rounded-xl transition-all"
                                         required
                                     />
                                 </div>
@@ -179,17 +185,17 @@ export default function LoginPage() {
 
                 {/* Divider */}
                 <div className="flex items-center gap-4 my-8">
-                    <div className="flex-1 h-px bg-white/10" />
-                    <span className="text-xs text-gray-500 uppercase tracking-wider">or</span>
-                    <div className="flex-1 h-px bg-white/10" />
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider">or</span>
+                    <div className="flex-1 h-px bg-border" />
                 </div>
 
                 {/* Switch View */}
-                <div className="text-center text-sm text-gray-400">
+                <div className="text-center text-sm text-muted-foreground">
                     {view === 'signin' && (
                         <p>
                             New to myaitrainer?{" "}
-                            <button onClick={() => setView('signup')} className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+                            <button onClick={() => setView('signup')} className="text-primary hover:text-primary/80 font-medium transition-colors">
                                 Create an account
                             </button>
                         </p>
@@ -197,7 +203,7 @@ export default function LoginPage() {
                     {(view === 'signup' || view === 'forgot_password') && (
                         <p>
                             Already have an account?{" "}
-                            <button onClick={() => setView('signin')} className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+                            <button onClick={() => setView('signin')} className="text-primary hover:text-primary/80 font-medium transition-colors">
                                 Sign in
                             </button>
                         </p>

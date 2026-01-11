@@ -14,12 +14,14 @@ import {
     DataTableEmpty,
     DataTableLoading
 } from "@/components/ui/data-table";
-import { MiniStat } from "@/components/ui/stats-display";
+import { StatCard } from "@/components/ui/stat-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pencil, Trash2, Shield, Search, UserPlus, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { FilterPanel, FilterRow } from "@/components/ui/filter-panel";
+import { ComboSelect } from "@/components/ui/combo-select";
 
 type Profile = {
     id: string;
@@ -34,6 +36,8 @@ export default function AdminUsersPage() {
     const [users, setUsers] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [roleFilter, setRoleFilter] = useState("all");
+    const [sortBy, setSortBy] = useState("created_at");
     const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [editRole, setEditRole] = useState("user");
@@ -100,11 +104,29 @@ export default function AdminUsersPage() {
         }
     };
 
-    const filteredUsers = users.filter(u =>
-        (u.email?.toLowerCase().includes(search.toLowerCase())) ||
-        (u.first_name?.toLowerCase().includes(search.toLowerCase())) ||
-        (u.last_name?.toLowerCase().includes(search.toLowerCase()))
-    );
+    const filteredUsers = users.filter(u => {
+        const matchesSearch = !search ||
+            (u.email?.toLowerCase().includes(search.toLowerCase())) ||
+            (u.first_name?.toLowerCase().includes(search.toLowerCase())) ||
+            (u.last_name?.toLowerCase().includes(search.toLowerCase()));
+
+        const matchesRole = roleFilter === "all" || u.role === roleFilter;
+
+        return matchesSearch && matchesRole;
+    }).sort((a, b) => {
+        if (sortBy === 'created_at') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        if (sortBy === 'name') {
+            const nameA = a.first_name || a.email;
+            const nameB = b.first_name || b.email;
+            return nameA.localeCompare(nameB);
+        }
+        return 0;
+    });
+
+    const userOptions = users.map(u => ({
+        label: `${u.first_name || ''} ${u.last_name || ''} (${u.email})`.trim(),
+        value: u.email // Using email for search as it's unique enough for UI selection usually, or we can use ID if ComboSelect supports unique values well.
+    }));
 
     const getRoleBadge = (role: string) => {
         const styles: Record<string, string> = {
@@ -116,43 +138,82 @@ export default function AdminUsersPage() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             {/* Header */}
             <PageHeader
                 icon={Users}
-                iconColor="blue"
+                iconColor="orange"
                 title="User Management"
                 description="Manage system access and roles"
-                actions={
-                    <div className="relative w-full md:w-80">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search users..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="pl-11 h-11"
-                        />
-                    </div>
-                }
             />
+
+            {/* Filter Panel */}
+            <FilterPanel>
+                <FilterRow>
+                    {/* Search */}
+                    <div className="md:col-span-2 relative">
+                        <Label className="text-xs text-muted-foreground mb-2 block">Search User</Label>
+                        <ComboSelect
+                            options={userOptions}
+                            value={search}
+                            onValueChange={setSearch}
+                            placeholder="Select user by name or email"
+                            searchPlaceholder="Type to search..."
+                        />
+                        {search && (
+                            <button onClick={() => setSearch('')} className="text-xs text-destructive mt-1 hover:underline text-right w-full block">Clear</button>
+                        )}
+                    </div>
+
+                    {/* Role Filter */}
+                    <div>
+                        <Label className="text-xs text-muted-foreground mb-2 block">Role</Label>
+                        <Select value={roleFilter} onValueChange={setRoleFilter}>
+                            <SelectTrigger className="h-10">
+                                <SelectValue placeholder="All Roles" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Roles</SelectItem>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="coach">Coach</SelectItem>
+                                <SelectItem value="user">User</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Sort By */}
+                    <div>
+                        <Label className="text-xs text-muted-foreground mb-2 block">Sort By</Label>
+                        <Select value={sortBy} onValueChange={setSortBy}>
+                            <SelectTrigger className="h-10">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="created_at">📅 Date Joined</SelectItem>
+                                <SelectItem value="name">Aa Name</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </FilterRow>
+            </FilterPanel>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <MiniStat
+                <StatCard
                     icon={Users}
-                    label="Total Users"
+                    title="Total Users"
                     value={users.length}
                     color="blue"
                 />
-                <MiniStat
+                <StatCard
                     icon={Shield}
-                    label="Admins"
+                    title="Admins"
                     value={users.filter(u => u.role === 'admin').length}
                     color="purple"
                 />
-                <MiniStat
+                <StatCard
                     icon={UserPlus}
-                    label="Coaches"
+                    title="Coaches"
                     value={users.filter(u => u.role === 'coach').length}
                     color="green"
                 />

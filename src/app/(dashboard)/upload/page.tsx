@@ -6,7 +6,7 @@ import { uploadData } from "@/lib/services/data";
 import { UploadCloud, CheckCircle, AlertTriangle, FileSpreadsheet, Loader2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
-import { MiniStat } from "@/components/ui/stats-display";
+import { StatCard } from "@/components/ui/stat-card";
 import { Card } from "@/components/ui/card";
 
 export default function UploadPage() {
@@ -126,15 +126,15 @@ export default function UploadPage() {
 
             {stats.uploaded > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <MiniStat
+                    <StatCard
                         icon={FileSpreadsheet}
-                        label="Rows Parsed"
+                        title="Rows Parsed"
                         value={stats.processed}
                         color="blue"
                     />
-                    <MiniStat
+                    <StatCard
                         icon={CheckCircle}
-                        label="Records Saved"
+                        title="Records Saved"
                         value={stats.uploaded}
                         color="green"
                     />

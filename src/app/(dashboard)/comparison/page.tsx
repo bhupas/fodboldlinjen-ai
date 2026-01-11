@@ -39,7 +39,7 @@ export default function ComparisonPage() {
         <div className="space-y-8 relative">
             <PageHeader
                 icon={Swords}
-                iconColor="orange"
+                iconColor="purple"
                 title="Head-to-Head"
                 description="Deep compare player performance metrics."
             />

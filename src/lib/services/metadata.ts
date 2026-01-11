@@ -19,7 +19,7 @@ export const getMetadata = async (): Promise<MetadataOptions> => {
     if (!stats) return { matches: [], players: [] };
 
     // Unique Players
-    const players = Array.from(new Set(stats.map(s => s.player_name))).sort();
+    const players = Array.from(new Set(stats.map(s => s.player_name?.trim()))).filter(Boolean).sort();
 
     // Unique Matches
     const matchMap = new Map<string, string>();

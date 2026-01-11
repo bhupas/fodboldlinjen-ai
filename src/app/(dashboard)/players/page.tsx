@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useEffect, useState, useMemo } from "react";
 import { getDashboardStats } from "@/lib/services/dashboard";
 import {
@@ -35,6 +37,7 @@ export default function PlayerStatsPage() {
     const [rawMatchStats, setRawMatchStats] = useState<any[]>([]);
     const [rawPerfStats, setRawPerfStats] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
     // Filters
     const [search, setSearch] = useState("");
@@ -182,7 +185,7 @@ export default function PlayerStatsPage() {
     if (loading) return <LoadingSkeleton variant="table" />;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             <PageHeader
                 icon={Users}
                 iconColor="blue"
@@ -313,7 +316,7 @@ export default function PlayerStatsPage() {
                             paginatedPlayers.map((player) => (
                                 <DataTableRow
                                     key={player.name}
-                                    onClick={() => window.location.href = `/players/${player.name}`}
+                                    onClick={() => router.push(`/players/${player.name}`)}
                                 >
                                     <DataTableCell className="font-medium">
                                         <span className="text-base group-hover:text-primary transition-colors">{player.name}</span>
