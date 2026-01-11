@@ -13,11 +13,14 @@ import {
     Sparkles,
     Database,
     Settings,
-    ChevronRight
+    ChevronRight,
+    Moon,
+    Sun
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/lib/theme-context";
 
 const NAV_ITEMS = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, description: "Overview & Analytics" },
@@ -35,6 +38,7 @@ const ADMIN_ITEMS = [
 export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
+    const { theme, toggleTheme } = useTheme();
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -44,7 +48,7 @@ export default function Sidebar() {
     return (
         <aside className="hidden md:flex flex-col w-72 h-full glass-panel m-4 mr-0 border-r-0 rounded-2xl overflow-hidden">
             {/* Header */}
-            <div className="p-6 border-b border-white/5">
+            <div className="p-6 border-b border-border/50">
                 <Link href="/dashboard" className="flex items-center gap-3 group">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
                         <Sparkles className="text-white" size={20} />
@@ -60,7 +64,7 @@ export default function Sidebar() {
 
             {/* Main Navigation */}
             <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-3">Main Menu</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-3">Main Menu</p>
                 {NAV_ITEMS.map((item) => {
                     const isActive = pathname === item.href;
                     return (
@@ -70,8 +74,8 @@ export default function Sidebar() {
                             className={cn(
                                 "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative",
                                 isActive
-                                    ? "bg-gradient-to-r from-blue-500/20 to-purple-500/10 text-white border border-blue-500/20"
-                                    : "text-muted-foreground hover:text-white hover:bg-white/5"
+                                    ? "bg-gradient-to-r from-blue-500/20 to-purple-500/10 text-foreground border border-blue-500/20"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                             )}
                         >
                             {isActive && (
@@ -81,22 +85,22 @@ export default function Sidebar() {
                                 "w-9 h-9 rounded-lg flex items-center justify-center transition-all",
                                 isActive
                                     ? "bg-blue-500/20"
-                                    : "bg-white/5 group-hover:bg-white/10"
+                                    : "bg-accent/50 group-hover:bg-accent"
                             )}>
-                                <item.icon size={18} className={cn("transition-colors", isActive ? "text-blue-400" : "text-muted-foreground group-hover:text-white")} />
+                                <item.icon size={18} className={cn("transition-colors", isActive ? "text-blue-500" : "text-muted-foreground group-hover:text-foreground")} />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <span className="font-medium text-sm block">{item.label}</span>
-                                <span className="text-xs text-gray-500 truncate block">{item.description}</span>
+                                <span className="text-xs text-muted-foreground truncate block">{item.description}</span>
                             </div>
-                            <ChevronRight size={16} className={cn("opacity-0 group-hover:opacity-100 transition-opacity", isActive && "opacity-100 text-blue-400")} />
+                            <ChevronRight size={16} className={cn("opacity-0 group-hover:opacity-100 transition-opacity", isActive && "opacity-100 text-blue-500")} />
                         </Link>
                     )
                 })}
 
                 {/* Admin Section */}
                 <div className="pt-6">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-3">Admin</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-3">Admin</p>
                     {ADMIN_ITEMS.map((item) => {
                         const isActive = pathname === item.href;
                         return (
@@ -106,17 +110,17 @@ export default function Sidebar() {
                                 className={cn(
                                     "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group",
                                     isActive
-                                        ? "bg-gradient-to-r from-orange-500/20 to-red-500/10 text-white border border-orange-500/20"
-                                        : "text-muted-foreground hover:text-white hover:bg-white/5"
+                                        ? "bg-gradient-to-r from-orange-500/20 to-red-500/10 text-foreground border border-orange-500/20"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                                 )}
                             >
                                 <div className={cn(
                                     "w-9 h-9 rounded-lg flex items-center justify-center transition-all",
                                     isActive
                                         ? "bg-orange-500/20"
-                                        : "bg-white/5 group-hover:bg-white/10"
+                                        : "bg-accent/50 group-hover:bg-accent"
                                 )}>
-                                    <item.icon size={18} className={cn("transition-colors", isActive ? "text-orange-400" : "text-muted-foreground group-hover:text-white")} />
+                                    <item.icon size={18} className={cn("transition-colors", isActive ? "text-orange-500" : "text-muted-foreground group-hover:text-foreground")} />
                                 </div>
                                 <div className="flex-1">
                                     <span className="font-medium text-sm">{item.label}</span>
@@ -128,13 +132,26 @@ export default function Sidebar() {
             </nav>
 
             {/* Footer */}
-            <div className="p-4 border-t border-white/5">
+            <div className="p-4 border-t border-border/50 space-y-2">
+                {/* Theme Toggle */}
                 <Button
                     variant="ghost"
-                    className="w-full justify-start text-muted-foreground hover:text-red-400 hover:bg-red-500/10 gap-3 py-3 rounded-xl"
+                    className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-accent/50 gap-3 py-3 rounded-xl"
+                    onClick={toggleTheme}
+                >
+                    <div className="w-9 h-9 rounded-lg bg-accent/50 flex items-center justify-center">
+                        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                    </div>
+                    <span className="font-medium">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+                </Button>
+
+                {/* Sign Out */}
+                <Button
+                    variant="ghost"
+                    className="w-full justify-start text-muted-foreground hover:text-red-500 hover:bg-red-500/10 gap-3 py-3 rounded-xl"
                     onClick={handleSignOut}
                 >
-                    <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-lg bg-accent/50 flex items-center justify-center">
                         <LogOut size={18} />
                     </div>
                     <span className="font-medium">Sign Out</span>
