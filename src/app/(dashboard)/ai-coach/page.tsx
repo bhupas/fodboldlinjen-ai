@@ -1,0 +1,262 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Download, Bot, Sparkles, Filter, FileText, User, Calendar, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { getMetadata, MetadataOptions } from "@/lib/services/metadata";
+
+export default function AICoachPage() {
+    const [metadata, setMetadata] = useState<MetadataOptions>({ matches: [], players: [] });
+    const [loadingData, setLoadingData] = useState(true);
+
+    // Selection State
+    const [scope, setScope] = useState<'Team' | 'Match' | 'Player'>('Team');
+    const [selectedId, setSelectedId] = useState<string>("");
+    const [analysisType, setAnalysisType] = useState<string>("general");
+
+    // Report State
+    const [report, setReport] = useState<string | null>(null);
+    const [generating, setGenerating] = useState(false);
+
+    useEffect(() => {
+        getMetadata().then(data => {
+            setMetadata(data);
+            setLoadingData(false);
+        });
+    }, []);
+
+    const handleGenerate = async () => {
+        setGenerating(true);
+        setReport(null);
+        try {
+            const res = await fetch('/api/ai-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    scope,
+                    id: selectedId,
+                    type: analysisType
+                })
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            setReport(data.report);
+        } catch (err: any) {
+            console.error("AI Generation Error:", err);
+            setReport(`Error generating report: ${err.message || "Unknown error occurred"}. Please try again.`);
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    const downloadReport = () => {
+        if (!report) return;
+        const blob = new Blob([report], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `AI_Coach_Report_${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    return (
+        <div className="h-[calc(100vh-100px)] w-full flex flex-col md:flex-row gap-6 p-4">
+            {/* Left Panel: Configuration */}
+            <Card className="w-full md:w-1/3 flex flex-col glass-panel border-0 shadow-2xl overflow-hidden">
+                <div className="p-6 border-b border-white/10 bg-black/20">
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <Sparkles className="text-blue-400" />
+                        Analysis Configuration
+                    </h2>
+                    <p className="text-sm text-gray-400 mt-2">Configure the AI to generate a specific tactical report.</p>
+                </div>
+
+                <div className="p-6 space-y-8 flex-1 overflow-y-auto">
+                    {/* Scope Selection */}
+                    <div className="space-y-3">
+                        <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                            <Filter size={16} /> Analysis Scope
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                            <button
+                                onClick={() => setScope('Team')}
+                                className={cn(
+                                    "p-3 rounded-lg text-sm font-medium transition-all border",
+                                    scope === 'Team'
+                                        ? "bg-blue-600 border-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]"
+                                        : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10"
+                                )}
+                            >
+                                <div className="flex flex-col items-center gap-1">
+                                    <Users size={18} />
+                                    Team
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => setScope('Match')}
+                                className={cn(
+                                    "p-3 rounded-lg text-sm font-medium transition-all border",
+                                    scope === 'Match'
+                                        ? "bg-blue-600 border-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]"
+                                        : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10"
+                                )}
+                            >
+                                <div className="flex flex-col items-center gap-1">
+                                    <Calendar size={18} />
+                                    Match
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => setScope('Player')}
+                                className={cn(
+                                    "p-3 rounded-lg text-sm font-medium transition-all border",
+                                    scope === 'Player'
+                                        ? "bg-blue-600 border-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]"
+                                        : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10"
+                                )}
+                            >
+                                <div className="flex flex-col items-center gap-1">
+                                    <User size={18} />
+                                    Player
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Dynamic Selection */}
+                    {scope === 'Match' && (
+                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                            <label className="text-sm font-medium text-gray-300">Select Match</label>
+                            <Select onValueChange={setSelectedId}>
+                                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                    <SelectValue placeholder="Select a match..." />
+                                </SelectTrigger>
+                                <SelectContent className="bg-[#1e293b] border-white/10 text-white">
+                                    {metadata.matches.map(m => (
+                                        <SelectItem key={m.id} value={m.id}>{m.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+
+                    {scope === 'Player' && (
+                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                            <label className="text-sm font-medium text-gray-300">Select Player</label>
+                            <Select onValueChange={setSelectedId}>
+                                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                    <SelectValue placeholder="Select a player..." />
+                                </SelectTrigger>
+                                <SelectContent className="bg-[#1e293b] border-white/10 text-white">
+                                    {metadata.players.map(p => (
+                                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+
+                    {/* Analysis Type */}
+                    <div className="space-y-3">
+                        <label className="text-sm font-medium text-gray-300">Analysis Focus</label>
+                        <Select onValueChange={setAnalysisType} defaultValue="general">
+                            <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                <SelectValue placeholder="Select type..." />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#1e293b] border-white/10 text-white">
+                                <SelectItem value="general">📊 General Overview</SelectItem>
+                                <SelectItem value="tactical">🎯 Tactical Deep Dive</SelectItem>
+                                <SelectItem value="individual">👤 Individual Development</SelectItem>
+                                <SelectItem value="physical_mental">💪 Physical & Mental</SelectItem>
+                                <SelectItem value="feedback">💭 Feedback & Psychology</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <Button
+                        onClick={handleGenerate}
+                        disabled={generating || (scope !== 'Team' && !selectedId)}
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white h-12 text-lg shadow-lg shadow-blue-500/20"
+                    >
+                        {generating ? (
+                            <>
+                                <Bot className="mr-2 animate-bounce" /> Analyzing...
+                            </>
+                        ) : (
+                            <>
+                                <Sparkles className="mr-2" /> Generate Report
+                            </>
+                        )}
+                    </Button>
+                </div>
+            </Card>
+
+            {/* Right Panel: Output */}
+            <Card className="flex-1 flex flex-col glass-panel border-0 shadow-2xl overflow-hidden relative min-h-[500px]">
+                <div className="p-6 border-b border-white/10 bg-black/20 flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <FileText className="text-purple-400" />
+                        AI Analysis Report
+                    </h2>
+                    {report && (
+                        <Button variant="outline" size="sm" onClick={downloadReport} className="border-white/20 text-white hover:bg-white/10">
+                            <Download size={16} className="mr-2" /> Export
+                        </Button>
+                    )}
+                </div>
+
+                <ScrollArea className="flex-1 p-8 bg-black/20 relative">
+                    {!report && !generating && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 opacity-50 pointer-events-none">
+                            <Bot size={64} className="mb-4 text-white/20" />
+                            <p className="text-lg">Select parameters and generate to see insights.</p>
+                        </div>
+                    )}
+
+                    {generating && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
+                            <div className="relative">
+                                <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <Bot size={24} className="text-blue-400" />
+                                </div>
+                            </div>
+                            <p className="text-blue-200 animate-pulse">Consulting Tactical Database...</p>
+                        </div>
+                    )}
+
+                    {report && (
+                        <div className="prose prose-invert max-w-none">
+                            {/* Simple Markdown Rendering */}
+                            {report.split('\n').map((line, i) => {
+                                if (line.startsWith('## ')) {
+                                    return <h2 key={i} className="text-2xl font-bold text-blue-300 mt-6 mb-4 pb-2 border-b border-white/10">{line.replace('## ', '')}</h2>;
+                                }
+                                if (line.startsWith('### ')) {
+                                    return <h3 key={i} className="text-xl font-bold text-purple-300 mt-4 mb-2">{line.replace('### ', '')}</h3>;
+                                }
+                                if (line.startsWith('- ')) {
+                                    return <li key={i} className="ml-4 text-gray-300 list-disc">{line.replace('- ', '')}</li>;
+                                }
+                                if (line.trim() === '') {
+                                    return <br key={i} />;
+                                }
+                                return <p key={i} className="text-gray-200 leading-relaxed mb-2">{line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                    .split('<strong>').map((part, index) =>
+                                        index % 2 === 1 ? <strong key={index} className="text-white font-semibold">{part}</strong> : part
+                                    )}</p>;
+                            })}
+                        </div>
+                    )}
+                </ScrollArea>
+            </Card>
+        </div>
+    );
+}
