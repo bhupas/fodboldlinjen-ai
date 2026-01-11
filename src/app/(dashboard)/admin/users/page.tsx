@@ -41,6 +41,9 @@ export default function AdminUsersPage() {
     const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [editRole, setEditRole] = useState("user");
+    const [editFirstName, setEditFirstName] = useState("");
+    const [editLastName, setEditLastName] = useState("");
+    const [editDob, setEditDob] = useState("");
     const [updating, setUpdating] = useState(false);
 
     useEffect(() => {
@@ -91,11 +94,27 @@ export default function AdminUsersPage() {
             const res = await fetch('/api/admin/users', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: selectedUser.id, role: editRole })
+                body: JSON.stringify({
+                    id: selectedUser.id,
+                    role: editRole,
+                    first_name: editFirstName,
+                    last_name: editLastName,
+                    date_of_birth: editDob
+                })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Failed to update");
-            setUsers(users.map(u => u.id === selectedUser.id ? { ...u, role: editRole } : u));
+            setUsers(users.map(u => u.id === selectedUser.id ? {
+                ...u,
+                role: editRole,
+                first_name: editFirstName,
+                last_name: editLastName,
+                // Assuming backend doesn't return updated profile object in list view immediately, we optimistic update
+                // But simplified:
+                // ...data 
+            } : u));
+            // Re-fetch to be safe or update state properly
+            fetchUsers();
             setIsEditDialogOpen(false);
         } catch (err: any) {
             alert(err.message);
@@ -263,6 +282,9 @@ export default function AdminUsersPage() {
                                             onClick={() => {
                                                 setSelectedUser(user);
                                                 setEditRole(user.role);
+                                                setEditFirstName(user.first_name || "");
+                                                setEditLastName(user.last_name || "");
+                                                setEditDob(user.date_of_birth || (user as any).date_of_birth || ""); // Type fix if generic Profile type is missing dob
                                                 setIsEditDialogOpen(true);
                                             }}
                                         >
@@ -291,6 +313,36 @@ export default function AdminUsersPage() {
                         <DialogTitle className="text-xl font-bold">Edit User Role</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="editFirstName">First Name</Label>
+                                <Input
+                                    id="editFirstName"
+                                    value={editFirstName}
+                                    onChange={(e) => setEditFirstName(e.target.value)}
+                                    className="h-10"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="editLastName">Last Name</Label>
+                                <Input
+                                    id="editLastName"
+                                    value={editLastName}
+                                    onChange={(e) => setEditLastName(e.target.value)}
+                                    className="h-10"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="editDob">Date of Birth</Label>
+                            <Input
+                                id="editDob"
+                                type="date"
+                                value={editDob}
+                                onChange={(e) => setEditDob(e.target.value)}
+                                className="h-10"
+                            />
+                        </div>
                         <div className="grid gap-2">
                             <Label htmlFor="role">Role</Label>
                             <Select value={editRole} onValueChange={setEditRole}>

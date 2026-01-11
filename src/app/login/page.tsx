@@ -11,10 +11,14 @@ import { Loader2, Sparkles, Mail, Lock, ArrowLeft, CheckCircle, AlertCircle } fr
 import Link from "next/link";
 import { useTheme } from "@/lib/theme-context";
 import { BackgroundBeams } from "@/components/aceternity/background-beams";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [dob, setDob] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [view, setView] = useState<'signin' | 'signup' | 'forgot_password'>('signin');
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
@@ -40,7 +44,17 @@ export default function LoginPage() {
         setIsLoading(true);
         setMessage(null);
 
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    first_name: firstName,
+                    last_name: lastName,
+                    date_of_birth: dob
+                }
+            }
+        });
         if (error) {
             setMessage({ text: error.message, type: 'error' });
         } else {
@@ -124,6 +138,44 @@ export default function LoginPage() {
                                 handleForgotPassword
                     } className="space-y-5">
 
+                        {view === 'signup' && (
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="firstName" className="font-medium text-sm">First Name</Label>
+                                    <Input
+                                        id="firstName"
+                                        placeholder="John"
+                                        value={firstName}
+                                        onChange={(e) => setFirstName(e.target.value)}
+                                        className="h-12 rounded-xl"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="lastName" className="font-medium text-sm">Last Name</Label>
+                                    <Input
+                                        id="lastName"
+                                        placeholder="Doe"
+                                        value={lastName}
+                                        onChange={(e) => setLastName(e.target.value)}
+                                        className="h-12 rounded-xl"
+                                        required
+                                    />
+                                </div>
+                                <div className="col-span-2 space-y-2">
+                                    <Label htmlFor="dob" className="font-medium text-sm">Date of Birth</Label>
+                                    <Input
+                                        id="dob"
+                                        type="date"
+                                        value={dob}
+                                        onChange={(e) => setDob(e.target.value)}
+                                        className="h-12 rounded-xl"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         <div className="space-y-2">
                             <Label htmlFor="email" className="font-medium text-sm">Email Address</Label>
                             <div className="relative">
@@ -154,18 +206,14 @@ export default function LoginPage() {
                                         </button>
                                     )}
                                 </div>
-                                <div className="relative">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
-                                    <Input
-                                        id="password"
-                                        type="password"
-                                        placeholder="••••••••"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="pl-12 h-12 rounded-xl transition-all"
-                                        required
-                                    />
-                                </div>
+                                <PasswordInput
+                                    id="password"
+                                    placeholder="••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    showStrength={view === 'signup'}
+                                    required
+                                />
                             </div>
                         )}
 
@@ -209,7 +257,7 @@ export default function LoginPage() {
                         </p>
                     )}
                 </div>
-            </Card>
-        </div>
+            </Card >
+        </div >
     );
 }

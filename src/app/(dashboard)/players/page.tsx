@@ -27,7 +27,7 @@ import { FilterPanel, FilterRow, FilterSection } from "@/components/ui/filter-pa
 import { PageHeader } from "@/components/ui/page-header";
 import { CountBadge } from "@/components/ui/stats-display";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
-import { Search, Users, Dumbbell } from "lucide-react";
+import { Search, Users, Dumbbell, Download, Ban } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
@@ -44,7 +44,11 @@ export default function PlayerStatsPage() {
     const [minGames, setMinGames] = useState(0);
     const [minGoals, setMinGoals] = useState(0);
     const [minAssists, setMinAssists] = useState(0);
+    const [ageRange, setAgeRange] = useState<[number, number]>([0, 99]);
     const [sortBy, setSortBy] = useState("rating");
+
+    // Profile Map for Age
+    const [profiles, setProfiles] = useState<any[]>([]);
 
     // New Filters
     const [opponentFilter, setOpponentFilter] = useState("");
@@ -56,13 +60,22 @@ export default function PlayerStatsPage() {
     const ITEMS_PER_PAGE = 50;
 
     useEffect(() => {
-        import("@/lib/services/dashboard").then(mod => {
-            mod.getRawStats().then((data) => {
-                setRawMatchStats(data.matchStats);
-                setRawPerfStats(data.perfStats);
-                setLoading(false);
-            });
-        });
+        const fetchData = async () => {
+            const { getRawStats } = await import("@/lib/services/dashboard");
+            const { getAllProfiles } = await import("@/lib/services/profiles");
+
+            const [statsData, profilesData] = await Promise.all([
+                getRawStats(),
+                getAllProfiles()
+            ]);
+
+            setRawMatchStats(statsData.matchStats);
+            setRawPerfStats(statsData.perfStats);
+            setProfiles(profilesData);
+            setLoading(false);
+        };
+
+        fetchData();
     }, []);
 
     const uniqueOpponents = useMemo(() => {
@@ -130,17 +143,33 @@ export default function PlayerStatsPage() {
 
         let players = Array.from(playerMap.values()).map(p => {
             const gymData = gymMap.get(p.name) || [];
+
+            // Calculate Age
+            const profile = profiles.find((prof: any) => {
+                const fullName = `${prof.first_name || ''} ${prof.last_name || ''}`.trim();
+                return fullName.toLowerCase() === p.name.toLowerCase() ||
+                    (prof.first_name && prof.first_name.toLowerCase() === p.name.toLowerCase());
+            });
+
+            let age = null;
+            if (profile && profile.date_of_birth) {
+                const dob = new Date(profile.date_of_birth);
+                const diff = Date.now() - dob.getTime();
+                age = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+            }
+
             return {
                 ...p,
                 avgPassing: p.games > 0 ? p.avgPassing / p.games : 0,
                 gymData: gymData,
                 perfCount: gymData.length,
-                maxGymPR: gymData.length > 0 ? Math.max(...gymData.map((d: any) => d.maxPR)) : 0
+                maxGymPR: gymData.length > 0 ? Math.max(...gymData.map((d: any) => d.maxPR)) : 0,
+                age
             };
         });
 
         return players;
-    }, [rawMatchStats, rawPerfStats, opponentFilter, startDate, endDate]);
+    }, [rawMatchStats, rawPerfStats, opponentFilter, startDate, endDate, profiles]);
 
     const filteredPlayers = useMemo(() => {
         let res = [...aggregatedPlayers];
@@ -152,6 +181,11 @@ export default function PlayerStatsPage() {
         if (minGoals > 0) res = res.filter(p => p.goals >= minGoals);
         if (minAssists > 0) res = res.filter(p => p.assists >= minAssists);
 
+        // Age Filter
+        if (ageRange[0] > 0 || ageRange[1] < 99) {
+            res = res.filter(p => p.age !== null && p.age >= ageRange[0] && p.age <= ageRange[1]);
+        }
+
         res.sort((a, b) => {
             switch (sortBy) {
                 case 'rating': return (b.avgPassing || 0) - (a.avgPassing || 0);
@@ -161,6 +195,7 @@ export default function PlayerStatsPage() {
                 case 'minutes': return b.minutes - a.minutes;
                 case 'passing': return b.avgPassing - a.avgPassing;
                 case 'gym': return b.maxGymPR - a.maxGymPR;
+                case 'age': return (b.age || 0) - (a.age || 0);
                 default: return 0;
             }
         });
@@ -170,7 +205,7 @@ export default function PlayerStatsPage() {
 
     useEffect(() => {
         setPage(1);
-    }, [search, minGames, minGoals, minAssists, sortBy, opponentFilter, startDate, endDate]);
+    }, [search, minGames, minGoals, minAssists, sortBy, opponentFilter, startDate, endDate, ageRange]);
 
     const paginatedPlayers = filteredPlayers.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
     const totalPages = Math.ceil(filteredPlayers.length / ITEMS_PER_PAGE);
@@ -182,6 +217,37 @@ export default function PlayerStatsPage() {
 
     const opponentOptions = uniqueOpponents.map(o => ({ label: o, value: o }));
 
+    // Export Functionality
+    const handleExport = () => {
+        const headers = ["Player", "Age", "Matches", "Minutes", "Goals", "Assists", "Passing %", "Tackles", "Yellow Cards", "Red Cards", "Gym Sessions", "Best PR"];
+        const rows = filteredPlayers.map(p => [
+            p.name,
+            p.age || "N/A",
+            p.games,
+            p.minutes,
+            p.goals,
+            p.assists,
+            p.avgPassing.toFixed(2),
+            p.totalTackles,
+            p.yellowCards,
+            p.redCards,
+            p.perfCount,
+            p.maxGymPR
+        ]);
+
+        const csvContent = "data:text/csv;charset=utf-8,"
+            + headers.join(",") + "\n"
+            + rows.map(e => e.join(",")).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `player_analysis_export_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     if (loading) return <LoadingSkeleton variant="table" />;
 
     return (
@@ -192,6 +258,12 @@ export default function PlayerStatsPage() {
                 title="Player Analysis"
                 description="Detailed performance metrics across the squad"
                 badge={<CountBadge count={filteredPlayers.length} label="Players Found" />}
+                actions={
+                    <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
+                        <Download size={14} />
+                        Export CSV
+                    </Button>
+                }
             />
 
             {/* Filter Panel */}
@@ -266,6 +338,7 @@ export default function PlayerStatsPage() {
                                 <SelectItem value="passing">🎯 Passing %</SelectItem>
                                 <SelectItem value="minutes">⏱ Minutes</SelectItem>
                                 <SelectItem value="gym">🏋️ Gym (Max PR)</SelectItem>
+                                <SelectItem value="age">🎂 Age</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -293,6 +366,20 @@ export default function PlayerStatsPage() {
                             </div>
                             <Slider value={[minAssists]} max={10} step={1} onValueChange={(val) => setMinAssists(val[0])} className="py-2" />
                         </div>
+                        <div className="space-y-3">
+                            <div className="flex justify-between">
+                                <Label className="text-muted-foreground text-xs uppercase font-bold">Age Range: {ageRange[0]} - {ageRange[1]}</Label>
+                                <span className="text-blue-500 text-xs font-mono">{ageRange[0]}-{ageRange[1]}</span>
+                            </div>
+                            <Slider
+                                value={ageRange}
+                                max={40}
+                                min={10}
+                                step={1}
+                                onValueChange={(val: any) => setAgeRange(val)}
+                                className="py-2"
+                            />
+                        </div>
                     </div>
                 </FilterSection>
             </FilterPanel>
@@ -302,6 +389,7 @@ export default function PlayerStatsPage() {
                 <DataTable>
                     <DataTableHeader>
                         <DataTableHead>Player</DataTableHead>
+                        <DataTableHead>Age</DataTableHead>
                         <DataTableHead className="text-right">Matches</DataTableHead>
                         <DataTableHead className="text-right">Mins</DataTableHead>
                         <DataTableHead className="text-right">Goals</DataTableHead>
@@ -319,7 +407,18 @@ export default function PlayerStatsPage() {
                                     onClick={() => router.push(`/players/${player.name}`)}
                                 >
                                     <DataTableCell className="font-medium">
-                                        <span className="text-base group-hover:text-primary transition-colors">{player.name}</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-base group-hover:text-primary transition-colors">{player.name}</span>
+                                        </div>
+                                    </DataTableCell>
+                                    <DataTableCell>
+                                        {player.age ? (
+                                            <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/30 text-xs font-mono">
+                                                {player.age} yo
+                                            </Badge>
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground/30 flex items-center gap-1" title="No DOB found"><Ban size={10} /> -</span>
+                                        )}
                                     </DataTableCell>
                                     <DataTableCell className="text-right text-muted-foreground font-mono">{player.games}</DataTableCell>
                                     <DataTableCell className="text-right text-muted-foreground font-mono">

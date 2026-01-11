@@ -29,6 +29,7 @@ const NAV_ITEMS = [
     { href: "/comparison", label: "Head to Head", icon: Swords, description: "Compare players" },
     { href: "/ai-coach", label: "AI Coach", icon: BrainCircuit, description: "Get tactical insights" },
     { href: "/editor", label: "Data Editor", icon: Database, description: "Edit records" },
+    { href: "/settings", label: "Settings", icon: Settings, description: "Profile & Security" },
 ];
 
 const ADMIN_ITEMS = [
