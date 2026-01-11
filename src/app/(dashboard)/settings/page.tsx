@@ -131,6 +131,44 @@ export default function SettingsPage() {
         fileInputRef.current?.click();
     };
 
+    const processImage = (file: File): Promise<Blob> => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    reject(new Error("Failed to get canvas context"));
+                    return;
+                }
+
+                // Target dimensions
+                const TARGET_SIZE = 256;
+                canvas.width = TARGET_SIZE;
+                canvas.height = TARGET_SIZE;
+
+                // Calculate styling for center crop
+                const minScale = Math.max(TARGET_SIZE / img.width, TARGET_SIZE / img.height);
+                const width = img.width * minScale;
+                const height = img.height * minScale;
+                const x = (TARGET_SIZE - width) / 2;
+                const y = (TARGET_SIZE - height) / 2;
+
+                ctx.drawImage(img, x, y, width, height);
+
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        resolve(blob);
+                    } else {
+                        reject(new Error("Failed to compress image"));
+                    }
+                }, 'image/jpeg', 0.8); // 80% quality JPEG
+            };
+            img.onerror = (err) => reject(err);
+        });
+    };
+
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file || !user) return;
@@ -139,13 +177,18 @@ export default function SettingsPage() {
         setMessage(null);
 
         try {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+            // Compress and resize image
+            const processedBlob = await processImage(file);
+
+            // Create a new File object from the blob for upload
+            const processedFile = new File([processedBlob], "avatar.jpg", { type: "image/jpeg" });
+
+            const fileName = `${user.id}-${Date.now()}.jpg`;
             const filePath = `${fileName}`;
 
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
-                .upload(filePath, file);
+                .upload(filePath, processedFile);
 
             if (uploadError) {
                 throw uploadError;
