@@ -15,7 +15,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-2">
           <Sparkles className="text-blue-500" />
           <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600">
-            Fodboldlinjen AI
+            myaitrainer
           </span>
         </div>
         <div className="flex items-center gap-4">
@@ -66,7 +66,7 @@ export default function LandingPage() {
       </main>
 
       <footer className="w-full py-8 text-center text-gray-600 text-sm relative z-10">
-        &copy; 2024 Fodboldlinjen. All rights reserved.
+        &copy; 2024 myaitrainer. All rights reserved.
       </footer>
     </div>
   );

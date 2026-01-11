@@ -153,7 +153,7 @@ export default function LoginPage() {
                 <div className="mt-8 text-center text-sm text-gray-400">
                     {view === 'signin' && (
                         <p>
-                            New to Fodboldlinjen?{" "}
+                            New to myaitrainer?{" "}
                             <button onClick={() => setView('signup')} className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
                                 Sign up now
                             </button>

@@ -52,6 +52,75 @@ export const updatePerformanceStat = async (player_name: string, exercise: strin
     return true;
 };
 
+export const deleteMatchStat = async (match_id: string, player_name: string) => {
+    const { error } = await supabase
+        .from('player_stats')
+        .delete()
+        .eq('match_id', match_id)
+        .eq('player_name', player_name);
+
+    if (error) throw error;
+    return true;
+};
+
+export const deletePerformanceStat = async (player_name: string, exercise: string) => {
+    const { error } = await supabase
+        .from('performance_stats')
+        .delete()
+        .eq('player_name', player_name)
+        .eq('exercise', exercise);
+
+    if (error) throw error;
+    return true;
+};
+
+export const createMatchStat = async (match_id: string, player_name: string, initialData: any = {}) => {
+    const { error } = await supabase
+        .from('player_stats')
+        .insert({
+            match_id,
+            player_name,
+            ...initialData
+        });
+
+    if (error) throw error;
+    return true;
+};
+
+export const createPerformanceStat = async (player_name: string, exercise: string, initialData: any = {}) => {
+    const { error } = await supabase
+        .from('performance_stats')
+        .insert({
+            player_name,
+            exercise,
+            ...initialData
+        });
+
+    if (error) throw error;
+    return true;
+};
+
+export const createMatch = async (date: string, opponent: string) => {
+    const { data, error } = await supabase
+        .from('matches')
+        .insert({ date, opponent })
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+};
+
+export const getMatches = async () => {
+    const { data, error } = await supabase
+        .from('matches')
+        .select('*')
+        .order('date', { ascending: false });
+
+    if (error) throw error;
+    return data;
+};
+
 export const updateMatch = async (match_id: string, updates: any) => {
     const { error } = await supabase
         .from('matches')

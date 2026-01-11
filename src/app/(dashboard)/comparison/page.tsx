@@ -156,23 +156,29 @@ function StatRow({ label, val1, val2, unit, highlight }: { label: string, val1: 
     )
 }
 
+import { SearchableSelect } from "@/components/ui/searchable-select";
+
 function PlayerCard({ player, players, selectedId, onSelect, color, label }: any) {
     const colorClasses = color === 'blue' ? 'border-blue-500/30 text-blue-400' : 'border-purple-500/30 text-purple-400';
     const bgClasses = color === 'blue' ? 'bg-blue-500/10 border-blue-500/20' : 'bg-purple-500/10 border-purple-500/20';
 
+    const options = players.map((p: any) => ({
+        label: p.name,
+        value: p.name
+    }));
+
     return (
         <Card className={`glass-panel p-6 ${colorClasses} border`}>
             <h3 className={`text-sm font-medium mb-4 ${color === 'blue' ? 'text-blue-400' : 'text-purple-400'}`}>{label}</h3>
-            <Select value={selectedId} onValueChange={onSelect}>
-                <SelectTrigger className="w-full bg-white/5 border-white/10 text-white mb-6">
-                    <SelectValue placeholder="Select Player" />
-                </SelectTrigger>
-                <SelectContent>
-                    {players.map((p: any) => (
-                        <SelectItem key={p.name} value={p.name}>{p.name}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+
+            <SearchableSelect
+                options={options}
+                value={selectedId}
+                onValueChange={onSelect}
+                placeholder="Select Player"
+                searchPlaceholder="Search players..."
+                className="mb-6"
+            />
 
             {player && (
                 <div className="space-y-4">

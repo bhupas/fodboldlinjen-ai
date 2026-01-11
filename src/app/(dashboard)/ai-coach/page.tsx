@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getMetadata, MetadataOptions } from "@/lib/services/metadata";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 export default function AICoachPage() {
     const [metadata, setMetadata] = useState<MetadataOptions>({ matches: [], players: [] });
@@ -134,32 +135,26 @@ export default function AICoachPage() {
                     {scope === 'Match' && (
                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
                             <label className="text-sm font-medium text-gray-300">Select Match</label>
-                            <Select onValueChange={setSelectedId}>
-                                <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                                    <SelectValue placeholder="Select a match..." />
-                                </SelectTrigger>
-                                <SelectContent className="bg-[#1e293b] border-white/10 text-white">
-                                    {metadata.matches.map(m => (
-                                        <SelectItem key={m.id} value={m.id}>{m.label}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                                options={metadata.matches.map(m => ({ label: m.label, value: m.id }))}
+                                value={selectedId}
+                                onValueChange={setSelectedId}
+                                placeholder="Select a match..."
+                                searchPlaceholder="Search matches..."
+                            />
                         </div>
                     )}
 
                     {scope === 'Player' && (
                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
                             <label className="text-sm font-medium text-gray-300">Select Player</label>
-                            <Select onValueChange={setSelectedId}>
-                                <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                                    <SelectValue placeholder="Select a player..." />
-                                </SelectTrigger>
-                                <SelectContent className="bg-[#1e293b] border-white/10 text-white">
-                                    {metadata.players.map(p => (
-                                        <SelectItem key={p} value={p}>{p}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                                options={metadata.players.map(p => ({ label: p, value: p }))}
+                                value={selectedId}
+                                onValueChange={setSelectedId}
+                                placeholder="Select a player..."
+                                searchPlaceholder="Search players..."
+                            />
                         </div>
                     )}
 

@@ -45,7 +45,7 @@ export default function Sidebar() {
                         Elite Coach
                     </h1>
                 </div>
-                <p className="text-xs text-muted-foreground ml-8">Fodboldlinjen AI</p>
+                <p className="text-xs text-muted-foreground ml-8">myaitrainer</p>
             </div>
 
             <nav className="flex-1 px-4 py-2 space-y-2">

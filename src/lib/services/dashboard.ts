@@ -196,3 +196,28 @@ export const getDashboardStats = async () => {
         recentActivity
     };
 };
+
+export const getRawStats = async () => {
+    const { data: matchStats, error } = await supabase
+        .from('player_stats')
+        .select(`
+      *,
+      matches ( date, opponent )
+    `);
+
+    const { data: perfStats, error: perfError } = await supabase
+        .from('performance_stats')
+        .select('*');
+
+    if (error) throw error;
+    if (perfError) throw perfError;
+
+    return {
+        matchStats: matchStats?.map(s => ({
+            ...s,
+            date: s.matches?.date,
+            opponent: s.matches?.opponent
+        })) || [],
+        perfStats: perfStats || []
+    };
+};

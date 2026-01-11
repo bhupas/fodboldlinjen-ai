@@ -80,6 +80,7 @@ export default function ComparisonRadar({ player1, player2 }: PlayerComparisonPr
                     <PolarRadiusAxis box={false} tick={false} axisLine={false} />
                     <Tooltip
                         contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }}
+                        formatter={(value: number) => value.toFixed(3)}
                     />
                     <Radar
                         name={player1.name}

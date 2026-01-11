@@ -107,7 +107,7 @@ export default function UploadPage() {
                     {isProcessing ? "Processing Data..." : "Drag & Drop or Click to Upload"}
                 </h3>
                 <p className="text-gray-400 max-w-sm">
-                    Supports .xlsx and .csv files with standard Fodboldlinjen columns.
+                    Supports .xlsx and .csv files with standard myaitrainer columns.
                 </p>
             </div>
 

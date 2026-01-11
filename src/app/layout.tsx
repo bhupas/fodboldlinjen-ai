@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Fodboldlinjen AI Elite Coach",
+  title: "myaitrainer Elite Coach",
   description: "Advanced football analytics and AI coaching platform",
 };
 
