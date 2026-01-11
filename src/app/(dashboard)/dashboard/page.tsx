@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getDashboardStats } from "@/lib/services/dashboard";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -20,6 +21,7 @@ import {
 export default function DashboardPage() {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
     useEffect(() => {
         getDashboardStats().then(stats => {
@@ -27,6 +29,10 @@ export default function DashboardPage() {
             setLoading(false);
         });
     }, []);
+
+    const handlePlayerClick = (playerName: string) => {
+        router.push(`/players?search=${encodeURIComponent(playerName)}`);
+    };
 
     if (loading) {
         return <div className="p-8 text-white flex items-center justify-center">
@@ -38,6 +44,12 @@ export default function DashboardPage() {
     }
 
     if (!data) return <div className="text-white">No data available. Upload some matches!</div>;
+
+    // Prepare sorted lists
+    const topPassers = [...data.allPlayers].sort((a: any, b: any) => b.avgPassing - a.avgPassing).slice(0, 5);
+    const topScorers = [...data.allPlayers].sort((a: any, b: any) => b.goals - a.goals).slice(0, 5);
+    const topAssists = [...data.allPlayers].sort((a: any, b: any) => b.assists - a.assists).slice(0, 5);
+    const topTacklers = [...data.allPlayers].sort((a: any, b: any) => b.totalTackles - a.totalTackles).slice(0, 5);
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
@@ -62,7 +74,7 @@ export default function DashboardPage() {
                 />
                 <StatCard
                     title="Avg. Passing"
-                    value={`${data.avgPassing.toFixed(1)}%`}
+                    value={`${Number(data.avgPassing).toFixed(3)}%`}
                     icon={Target}
                     color="purple"
                     trend="+2.4% vs last month"
@@ -70,7 +82,7 @@ export default function DashboardPage() {
                 />
                 <StatCard
                     title="Total Goals"
-                    value={data.totalGoals || 0} // Added to service but needed here
+                    value={data.totalGoals || 0}
                     icon={Trophy}
                     color="yellow"
                 />
@@ -99,10 +111,11 @@ export default function DashboardPage() {
                                     stroke="#9ca3af"
                                     tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                 />
-                                <YAxis stroke="#9ca3af" />
+                                <YAxis stroke="#9ca3af" tickFormatter={(val) => Number(val).toFixed(0)} />
                                 <Tooltip
                                     contentStyle={{ backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
                                     itemStyle={{ color: '#fff' }}
+                                    formatter={(val: number) => val.toFixed(3)}
                                 />
                                 <Line
                                     type="monotone"
@@ -117,7 +130,7 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* Top Gym Performers (Vertical List/Chart) */}
+                {/* Top Gym Performers */}
                 <div className="glass-panel p-6 border-t-4 border-t-green-500">
                     <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                         <Dumbbell className="text-pink-500" />
@@ -125,7 +138,11 @@ export default function DashboardPage() {
                     </h3>
                     <div className="space-y-4">
                         {data?.topGymPlayers.map((player: any, i: number) => (
-                            <div key={player.name} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                            <div
+                                key={player.name}
+                                className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
+                                onClick={() => handlePlayerClick(player.name)}
+                            >
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-400 font-bold">
                                         {i + 1}
@@ -151,38 +168,87 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* Secondary Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="glass-panel p-6 border-t-4 border-t-purple-500">
-                    <h3 className="text-xl font-bold text-white mb-6">Top Passers</h3>
-                    <div className="h-[250px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={data.topPlayers} layout="vertical" margin={{ left: 40 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" horizontal={false} />
-                                <XAxis type="number" stroke="#9ca3af" domain={[0, 100]} />
-                                <YAxis dataKey="name" type="category" width={100} stroke="#9ca3af" fontSize={12} />
-                                <Tooltip
-                                    cursor={{ fill: 'transparent' }}
-                                    contentStyle={{ backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
-                                />
-                                <Bar dataKey="avgPassing" radius={[0, 4, 4, 0]} barSize={20}>
-                                    {data.topPlayers.map((entry: any, index: number) => (
-                                        <Cell key={`cell-${index}`} fill={index === 0 ? '#a855f7' : '#6366f1'} />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
+            {/* Top Performers Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <TopPlayerChart
+                    title="Top Passers"
+                    icon={Target}
+                    data={topPassers}
+                    dataKey="avgPassing"
+                    color="#a855f7"
+                    unit="%"
+                    onPlayerClick={handlePlayerClick}
+                />
+                <TopPlayerChart
+                    title="Top Scorers"
+                    icon={Trophy}
+                    data={topScorers}
+                    dataKey="goals"
+                    color="#eab308"
+                    onPlayerClick={handlePlayerClick}
+                />
+                <TopPlayerChart
+                    title="Top Assists"
+                    icon={Activity}
+                    data={topAssists}
+                    dataKey="assists"
+                    color="#3b82f6"
+                    onPlayerClick={handlePlayerClick}
+                />
+                <TopPlayerChart
+                    title="Top Tacklers"
+                    icon={Shield}
+                    data={topTacklers}
+                    dataKey="totalTackles"
+                    color="#ef4444" // Red
+                    onPlayerClick={handlePlayerClick}
+                />
+            </div>
 
-                <div className="glass-panel p-6 border-t-4 border-t-yellow-500 flex flex-col justify-center items-center text-center">
-                    <h3 className="text-xl font-bold text-white mb-2">Need Insights?</h3>
-                    <p className="text-gray-400 mb-6 max-w-xs">Ask the AI Coach to analyze your latest match or training data.</p>
-                    <a href="/ai-coach" className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg text-white font-bold shadow-lg hover:scale-105 transition-transform flex items-center gap-2">
-                        <Target size={18} /> Go to AI Coach
-                    </a>
-                </div>
+            <div className="glass-panel p-6 border-t-4 border-t-purple-500 flex flex-col justify-center items-center text-center">
+                <h3 className="text-xl font-bold text-white mb-2">Need Insights?</h3>
+                <p className="text-gray-400 mb-6 max-w-xs">Ask the AI Coach to analyze your latest match or training data.</p>
+                <a href="/ai-coach" className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg text-white font-bold shadow-lg hover:scale-105 transition-transform flex items-center gap-2">
+                    <Target size={18} /> Go to AI Coach
+                </a>
             </div>
         </div>
     );
+}
+
+const TopPlayerChart = ({ title, icon: Icon, data, dataKey, color, unit = "", onPlayerClick }: any) => {
+    return (
+        <div className={`glass-panel p-6 border-t-4`} style={{ borderColor: color }}>
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <Icon size={20} style={{ color }} /> {title}
+            </h3>
+            <div className="h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data} layout="vertical" margin={{ left: 0, right: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                        <XAxis type="number" stroke="#6b7280" fontSize={10} hide />
+                        <YAxis
+                            dataKey="name"
+                            type="category"
+                            width={100}
+                            stroke="#9ca3af"
+                            fontSize={11}
+                            tick={{ fill: '#9ca3af' }}
+                            interval={0}
+                        />
+                        <Tooltip
+                            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                            contentStyle={{ backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
+                            formatter={(val: number) => [`${val.toFixed(3)}${unit}`, title]}
+                        />
+                        <Bar dataKey={dataKey} radius={[0, 4, 4, 0]} barSize={16} onClick={(data) => onPlayerClick(data.name)} cursor="pointer">
+                            {data.map((entry: any, index: number) => (
+                                <Cell key={`cell-${index}`} fill={color} style={{ opacity: 0.8 + (0.2 * ((5 - index) / 5)) }} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    )
 }
