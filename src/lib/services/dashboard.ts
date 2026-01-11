@@ -126,9 +126,24 @@ export const getDashboardStats = async () => {
         });
     }
 
+    // Gym Data Enrichment
+    const playerGymMap = new Map<string, { exercise: string, maxPR: number }[]>();
+    if (perfStats) {
+        perfStats.forEach((p: any) => {
+            if (!playerGymMap.has(p.player_name)) {
+                playerGymMap.set(p.player_name, []);
+            }
+            const maxPR = Math.max(p.pr_1 || 0, p.pr_2 || 0, p.pr_3 || 0, p.pr_4 || 0);
+            playerGymMap.get(p.player_name)!.push({
+                exercise: p.exercise,
+                maxPR: maxPR
+            });
+        });
+    }
+
     const allPlayers = Array.from(playerMap.values()).map(p => ({
         name: p.name,
-        avgPassing: p.avgPassing / p.games,
+        avgPassing: p.avgPassing / (p.games || 1), // Prevent div by zero
         totalShots: p.totalShots,
         totalTackles: p.totalTackles,
         goals: p.goals,
@@ -137,7 +152,8 @@ export const getDashboardStats = async () => {
         yellowCards: p.yellowCards,
         redCards: p.redCards,
         perfCount: p.perfCount,
-        games: p.games
+        games: p.games,
+        gymData: playerGymMap.get(p.name) || [] // Attach detailed gym data
     })).sort((a, b) => b.games - a.games); // Default sort by games played
 
     const topPlayers = [...allPlayers].sort((a, b) => b.avgPassing - a.avgPassing).slice(0, 5);

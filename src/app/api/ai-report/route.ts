@@ -51,51 +51,36 @@ export async function POST(req: NextRequest) {
         // 3. Enrich Data
         let enriched = calculateMetrics(rawStats as any);
 
-        // 3. Filter Data based on Scope
+        // 3. Filter Data based on Scope (Match Stats)
         let selectionName = "";
         let selectionData: EnrichedPlayerStat[] = [];
+        let targetPlayerNames: Set<string> = new Set();
 
         if (scope === 'Team') {
             selectionData = enriched;
             selectionName = "Hele Holdet";
+            // For team scope, we want all players regardless of if they played matches
+            if (perfStats) perfStats.forEach((p: any) => targetPlayerNames.add(p.player_name));
+            if (enriched) enriched.forEach(p => targetPlayerNames.add(p.player_name));
         } else if (scope === 'Match' && id) {
             selectionData = enriched.filter(e => e.Match === id);
             selectionName = `Kamp: ${id}`;
+            selectionData.forEach(p => targetPlayerNames.add(p.player_name));
         } else if (scope === 'Player' && id) {
             selectionData = enriched.filter(e => e.player_name === id);
             selectionName = `Spiller: ${id}`;
+            targetPlayerNames.add(id);
         } else {
             selectionData = enriched;
             selectionName = "Generel Analyse";
+            if (perfStats) perfStats.forEach((p: any) => targetPlayerNames.add(p.player_name));
+            if (enriched) enriched.forEach(p => targetPlayerNames.add(p.player_name));
         }
 
-        if (selectionData.length === 0) {
-            return NextResponse.json({ error: "No data found for selection" }, { status: 404 });
-        }
-
-        // 4. Calculate Summary Statistics for Prompt
-        const avgRating = selectionData.reduce((acc, curr) => acc + curr.Performance_Rating, 0) / selectionData.length;
-        const avgPassing = selectionData.reduce((acc, curr) => acc + curr.Passing_Accuracy, 0) / selectionData.length;
-        const totalShots = selectionData.reduce((acc, curr) => acc + curr.total_shots, 0); // Sum or Avg? Python used mean for 'Skudfrekvens'?
-        // Python: Skudfrekvens: {df['Total_Shots'].mean():.1f} per kamp
-        const avgShots = selectionData.reduce((acc, curr) => acc + curr.total_shots, 0) / selectionData.length;
-        const avgPressing = selectionData.reduce((acc, curr) => acc + curr.Pressing_Intensity, 0) / selectionData.length;
-        const avgDefWork = selectionData.reduce((acc, curr) => acc + curr.Defensive_Workrate, 0) / selectionData.length;
-
-        // Feedback Text
-        const feedbackText = selectionData
-            .filter(e => e.feedback)
-            .map(e => e.feedback)
-            .join(' ')
-            .slice(0, 1000); // Limit length
-
-        // Trend (Simple check of last few matches if applicable)
-        // Omitted for brevity, but could be added.
-
-        // 5. Process Performance Data (Summary)
+        // 5. Process Performance Data (Summary) - Prioritize this before error checking
         let perfSummary = "";
-        const includedPlayers = new Set(selectionData.map(e => e.player_name));
-        const filteredPerfStats = (perfStats || []).filter((p: any) => includedPlayers.has(p.player_name));
+        // Filter perf stats based on the broadened targetPlayerNames set
+        const filteredPerfStats = (perfStats || []).filter((p: any) => targetPlayerNames.has(p.player_name));
 
         if (filteredPerfStats.length > 0) {
             const exerciseStats = new Map<string, number[]>();
@@ -117,9 +102,35 @@ export async function POST(req: NextRequest) {
             });
 
             if (lines.length > 0) {
-                perfSummary = `🏋️ **Fysisk Performance (Gym/Tests):**\n${lines.join('\n')}`;
+                perfSummary = `🏋️ **Fysisk Performance (Gym/Tests):** (Baseret på ${filteredPerfStats.length} målinger)\n${lines.join('\n')}`;
             }
         }
+
+        // CHECK: Do we have ANY data?
+        if (selectionData.length === 0 && filteredPerfStats.length === 0) {
+            return NextResponse.json({ error: "No data found for selection (Matches or Gym)" }, { status: 404 });
+        }
+
+
+        // 4. Calculate Summary Statistics for Prompt
+        const safeDiv = (n: number) => selectionData.length > 0 ? n / selectionData.length : 0;
+
+        const avgRating = safeDiv(selectionData.reduce((acc, curr) => acc + curr.Performance_Rating, 0));
+        const avgPassing = safeDiv(selectionData.reduce((acc, curr) => acc + curr.Passing_Accuracy, 0));
+        // Python: Skudfrekvens: {df['Total_Shots'].mean():.1f} per kamp
+        const avgShots = safeDiv(selectionData.reduce((acc, curr) => acc + curr.total_shots, 0));
+        const avgPressing = safeDiv(selectionData.reduce((acc, curr) => acc + curr.Pressing_Intensity, 0));
+        const avgDefWork = safeDiv(selectionData.reduce((acc, curr) => acc + curr.Defensive_Workrate, 0));
+
+        // Feedback Text
+        const feedbackText = selectionData
+            .filter(e => e.feedback)
+            .map(e => e.feedback)
+            .join(' ')
+            .slice(0, 1000); // Limit length
+
+        // Trend (Simple check of last few matches if applicable)
+        // Omitted for brevity, but could be added.
 
         // 6. Construct Prompt
         const prompts = {
@@ -171,26 +182,29 @@ export async function POST(req: NextRequest) {
             **DATA FOR: ${selectionName}**
 
             📊 **Kvantitative Nøgletal (Match):**
+            ${selectionData.length > 0 ? `
             - Datapunkter analyseret: ${selectionData.length}
             - Gennemsnitlig Performance Rating: ${avgRating.toFixed(1)}/100
             - Pasningspræcision: ${avgPassing.toFixed(1)}%
             - Skudfrekvens: ${avgShots.toFixed(1)} per spiller/kamp
             - Presintensitet: ${avgPressing.toFixed(1)}%
             - Defensiv arbejdsrate: ${avgDefWork.toFixed(1)}%
+            ` : "- Ingen kampdata tilgængelig. Fokuser venligst udelukkende på fysisk/gym data."}
 
             ${perfSummary}
 
             💭 **Spillernes Feedback:**
-            "${feedbackText}"
+            "${feedbackText || 'Ingen feedback'}"
 
             📋 **ANALYSEOMRÅDE:**
             ${specificPrompt}
+            ${selectionData.length === 0 ? "BEMÆRK: Vi har kun fysisk/gym data. Din analyse SKAL fokusere udelukkende på den fysiske tilstand og udvikling." : ""}
 
             **DIN OPGAVE:**
             Skriv en professionel trænerrapport på DANSK med følgende struktur:
 
             ## 🎯 Hovedkonklusioner
-            [3-4 skarpe observationer baseret på både kamp- og fysiske data]
+            [3-4 skarpe observationer baseret på tilgængelig data]
 
             ## 💪 Styrker at Bygge På
             [Konkrete styrker med data-backing]
@@ -199,9 +213,9 @@ export async function POST(req: NextRequest) {
             [Specifikke svagheder der SKAL addresses]
 
             ## 🏃 Træningsplan (Næste 2 Uger)
-            [Konkrete øvelser og fokuspunkter, inkl. fysisk træning hvis relevant]
+            [Konkrete øvelser og fokuspunkter, inkl. fysisk træning]
 
-            ## 📈 Målsætninger for Næste 3 Kampe
+            ## 📈 Målsætninger for Næste 3 Kampe/Tests
             [Specifikke, målbare mål]
 
             Vær KONKRET og HANDLINGSORIENTERET. Brug Markdown format.

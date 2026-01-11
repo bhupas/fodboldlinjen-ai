@@ -273,25 +273,69 @@ export default function AICoachPage() {
                     )}
 
                     {report && (
-                        <div className="prose prose-invert max-w-none">
-                            {/* Simple Markdown Rendering */}
+                        <div className="prose prose-invert max-w-none text-gray-200">
+                            {/* Improved Markdown Rendering */}
                             {report.split('\n').map((line, i) => {
+                                const key = `line-${i}`;
+
+                                // Headers
                                 if (line.startsWith('## ')) {
-                                    return <h2 key={i} className="text-2xl font-bold text-blue-300 mt-6 mb-4 pb-2 border-b border-white/10">{line.replace('## ', '')}</h2>;
+                                    return <h2 key={key} className="text-2xl font-bold text-blue-300 mt-8 mb-4 pb-2 border-b border-white/10">{line.replace('## ', '')}</h2>;
                                 }
                                 if (line.startsWith('### ')) {
-                                    return <h3 key={i} className="text-xl font-bold text-purple-300 mt-4 mb-2">{line.replace('### ', '')}</h3>;
+                                    return <h3 key={key} className="text-xl font-bold text-purple-300 mt-6 mb-3">{line.replace('### ', '')}</h3>;
                                 }
-                                if (line.startsWith('- ')) {
-                                    return <li key={i} className="ml-4 text-gray-300 list-disc">{line.replace('- ', '')}</li>;
+
+                                // Tables
+                                if (line.startsWith('|')) {
+                                    if (line.includes('---')) return null; // Skip separator lines
+                                    const cells = line.split('|').filter(c => c.trim() !== '');
+                                    return (
+                                        <div key={key} className="grid grid-flow-col auto-cols-auto gap-4 py-2 border-b border-white/5 hover:bg-white/5 px-2 rounded">
+                                            {cells.map((cell, idx) => (
+                                                <div key={idx} className={cn("text-sm", i > 0 && report.split('\n')[i - 1].startsWith('|') ? "" : "font-bold text-blue-200")}>
+                                                    {cell.replace(/\*\*(.*?)\*\*/g, '$1').trim()}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
                                 }
+
+                                // Lists
+                                if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
+                                    return (
+                                        <div key={key} className="flex gap-2 mb-2 ml-4">
+                                            <span className="text-blue-400">•</span>
+                                            <span dangerouslySetInnerHTML={{
+                                                __html: line.replace(/^[\-\*]\s/, '').replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
+                                            }} />
+                                        </div>
+                                    );
+                                }
+
+                                // Ordered Lists
+                                if (/^\d+\./.test(line.trim())) {
+                                    return (
+                                        <div key={key} className="flex gap-2 mb-3 ml-2">
+                                            <span className="text-blue-400 font-bold min-w-[20px]">{line.match(/^\d+\./)?.[0]}</span>
+                                            <span dangerouslySetInnerHTML={{
+                                                __html: line.replace(/^\d+\.\s/, '').replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
+                                            }} />
+                                        </div>
+                                    );
+                                }
+
+                                // Empty Lines
                                 if (line.trim() === '') {
-                                    return <br key={i} />;
+                                    return <div key={key} className="h-2" />;
                                 }
-                                return <p key={i} className="text-gray-200 leading-relaxed mb-2">{line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                    .split('<strong>').map((part, index) =>
-                                        index % 2 === 1 ? <strong key={index} className="text-white font-semibold">{part}</strong> : part
-                                    )}</p>;
+
+                                // Normal Text (with bold support)
+                                return (
+                                    <p key={key} className="mb-2 leading-relaxed" dangerouslySetInnerHTML={{
+                                        __html: line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
+                                    }} />
+                                );
                             })}
                         </div>
                     )}

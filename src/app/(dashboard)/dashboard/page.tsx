@@ -55,6 +55,12 @@ export default function DashboardPage() {
                     color="blue"
                 />
                 <StatCard
+                    title="Total Tackles"
+                    value={data?.totalTackles || 0}
+                    icon={Shield}
+                    trend="+12% vs last month"
+                />
+                <StatCard
                     title="Avg. Passing"
                     value={`${data.avgPassing.toFixed(1)}%`}
                     icon={Target}
@@ -113,20 +119,29 @@ export default function DashboardPage() {
 
                 {/* Top Gym Performers (Vertical List/Chart) */}
                 <div className="glass-panel p-6 border-t-4 border-t-green-500">
-                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                        <Dumbbell className="text-green-400" /> Gym Leaders
+                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <Dumbbell className="text-pink-500" />
+                        Top Physical Performers
                     </h3>
                     <div className="space-y-4">
-                        {data.topGymPlayers.map((player: any, i: number) => (
-                            <div key={player.name} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                        {data?.topGymPlayers.map((player: any, i: number) => (
+                            <div key={player.name} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
                                 <div className="flex items-center gap-3">
-                                    <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${i === 0 ? 'bg-yellow-500 text-black' :
-                                        i === 1 ? 'bg-gray-400 text-black' :
-                                            i === 2 ? 'bg-orange-700 text-white' : 'bg-gray-700 text-gray-400'
-                                        }`}>{i + 1}</span>
-                                    <span className="text-gray-200 font-medium">{player.name}</span>
+                                    <div className="w-8 h-8 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-400 font-bold">
+                                        {i + 1}
+                                    </div>
+                                    <div>
+                                        <div className="font-medium text-white">{player.name}</div>
+                                        <div className="text-xs text-gray-400">{player.perfCount} Exercises Logged</div>
+                                    </div>
                                 </div>
-                                <span className="text-green-400 font-bold">{player.perfCount} <span className="text-xs text-gray-500 font-normal">Records</span></span>
+                                <div className="text-right">
+                                    <div className="text-sm font-bold text-pink-400">
+                                        {player.gymData && player.gymData.length > 0
+                                            ? `${Math.max(...player.gymData.map((d: any) => d.maxPR))} kg Max`
+                                            : 'N/A'}
+                                    </div>
+                                </div>
                             </div>
                         ))}
                         {data.topGymPlayers.length === 0 && (

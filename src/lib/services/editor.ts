@@ -51,3 +51,13 @@ export const updatePerformanceStat = async (player_name: string, exercise: strin
     if (error) throw error;
     return true;
 };
+
+export const updateMatch = async (match_id: string, updates: any) => {
+    const { error } = await supabase
+        .from('matches')
+        .update(updates)
+        .eq('id', match_id);
+
+    if (error) throw error;
+    return true;
+};

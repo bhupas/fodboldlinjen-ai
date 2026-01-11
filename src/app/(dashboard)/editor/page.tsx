@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { getEditableData, updateMatchStat, updatePerformanceStat, EditorTable } from "@/lib/services/editor";
+import { useState, useEffect, useMemo } from "react";
+import { getEditableData, updateMatchStat, updatePerformanceStat, updateMatch, EditorTable } from "@/lib/services/editor";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Save, CheckCircle, AlertCircle, Database } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Loader2, CheckCircle, Database, Search } from "lucide-react";
 
 export default function DataEditorPage() {
     const [mode, setMode] = useState<EditorTable>('match_stats');
@@ -16,6 +14,7 @@ export default function DataEditorPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState<string | null>(null); // "row_id-col"
     const [lastSaved, setLastSaved] = useState<number>(0);
+    const [search, setSearch] = useState("");
 
     useEffect(() => {
         loadData();
@@ -34,7 +33,7 @@ export default function DataEditorPage() {
     };
 
     const handleUpdate = async (row: any, field: string, value: string) => {
-        // Optimistic update
+        // Optimistic update logic
         const newData = [...data];
         const rowIndex = newData.findIndex(r =>
             mode === 'match_stats'
@@ -44,13 +43,28 @@ export default function DataEditorPage() {
 
         if (rowIndex === -1) return;
 
-        // Convert value if number
         let finalValue: any = value;
-        if (['goals', 'assists', 'minutes_played', 'total_passes', 'successful_passes', 'total_shots', 'total_tackles', 'yellow_cards', 'red_cards', 'pr_1', 'pr_2', 'pr_3', 'pr_4'].includes(field)) {
+        const numberFields = ['goals', 'assists', 'minutes_played', 'total_passes', 'successful_passes', 'total_shots', 'total_tackles', 'yellow_cards', 'red_cards', 'pr_1', 'pr_2', 'pr_3', 'pr_4'];
+
+        if (numberFields.includes(field)) {
             finalValue = value === '' ? null : Number(value);
         }
 
-        newData[rowIndex] = { ...newData[rowIndex], [field]: finalValue };
+        // Apply update to local state based on field type
+        if (field === 'match_date') {
+            // Update all rows with this match_id locally to keep UI consistent
+            newData.forEach(r => {
+                if (r.match_id === row.match_id) r.match_date = value;
+            });
+        } else if (field === 'match_opponent') {
+            newData.forEach(r => {
+                if (r.match_id === row.match_id) r.match_opponent = value;
+            });
+        } else {
+            // Update single row
+            newData[rowIndex] = { ...newData[rowIndex], [field]: finalValue };
+        }
+
         setData(newData);
 
         const key = `${mode === 'match_stats' ? row.match_id : row.player_name}-${field}`;
@@ -58,69 +72,106 @@ export default function DataEditorPage() {
 
         try {
             if (mode === 'match_stats') {
-                await updateMatchStat(row.match_id, row.player_name, { [field]: finalValue });
+                if (field === 'match_date') {
+                    await updateMatch(row.match_id, { date: value });
+                } else if (field === 'match_opponent') {
+                    await updateMatch(row.match_id, { opponent: value });
+                } else {
+                    // Standard stat update
+                    await updateMatchStat(row.match_id, row.player_name, { [field]: finalValue });
+                }
             } else {
                 await updatePerformanceStat(row.player_name, row.exercise, { [field]: finalValue });
             }
             setLastSaved(Date.now());
         } catch (err) {
             console.error("Save failed", err);
-            // Revert? (Complex, skipping for now, showing error state would be better)
         } finally {
             setSaving(null);
         }
     };
 
+    const filteredData = useMemo(() => {
+        if (!search) return data;
+        const lowerSearch = search.toLowerCase();
+        return data.filter(row => {
+            if (mode === 'match_stats') {
+                return (
+                    row.player_name?.toLowerCase().includes(lowerSearch) ||
+                    row.match_opponent?.toLowerCase().includes(lowerSearch) ||
+                    row.match_date?.toLowerCase().includes(lowerSearch)
+                );
+            } else {
+                return (
+                    row.player_name?.toLowerCase().includes(lowerSearch) ||
+                    row.exercise?.toLowerCase().includes(lowerSearch)
+                );
+            }
+        });
+    }, [data, search, mode]);
+
     return (
-        <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sticky top-0 bg-background/80 backdrop-blur-md z-40 py-4 border-b border-white/5 -mx-4 px-4 md:-mx-8 md:px-8">
                 <div>
                     <h1 className="text-3xl font-bold text-white flex items-center gap-2">
                         <Database className="text-pink-500" />
                         Data Editor
                     </h1>
-                    <p className="text-gray-400">Directly edit database records. Changes save automatically.</p>
                 </div>
 
-                <div className="flex items-center gap-4 bg-black/20 p-2 rounded-lg border border-white/10">
-                    <Select value={mode} onValueChange={(v: EditorTable) => setMode(v)}>
-                        <SelectTrigger className="w-[180px] bg-white/5 border-white/10 text-white">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#1e293b] border-white/10 text-white">
-                            <SelectItem value="match_stats">⚽ Match Stats</SelectItem>
-                            <SelectItem value="performance_stats">🏋️ Gym Performance</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                    {/* Search Bar */}
+                    <div className="relative w-full md:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <Input
+                            placeholder="Filter data..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="pl-9 bg-white/5 border-white/10 text-white"
+                        />
+                    </div>
 
-                    <div className="flex items-center gap-2 px-3">
-                        {saving ? (
-                            <span className="text-yellow-400 text-xs flex items-center gap-1">
-                                <Loader2 size={12} className="animate-spin" /> Saving...
-                            </span>
-                        ) : lastSaved > 0 ? (
-                            <span className="text-green-400 text-xs flex items-center gap-1 animate-in fade-in">
-                                <CheckCircle size={12} /> Saved
-                            </span>
-                        ) : null}
+                    <div className="flex items-center gap-4 bg-black/20 p-2 rounded-lg border border-white/10 w-full md:w-auto">
+                        <Select value={mode} onValueChange={(v: EditorTable) => { setMode(v); setSearch(""); }}>
+                            <SelectTrigger className="w-[180px] bg-white/5 border-white/10 text-white">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#1e293b] border-white/10 text-white">
+                                <SelectItem value="match_stats">⚽ Match Stats</SelectItem>
+                                <SelectItem value="performance_stats">🏋️ Gym Performance</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <div className="flex items-center gap-2 px-3 min-w-[100px] justify-end">
+                            {saving ? (
+                                <span className="text-yellow-400 text-xs flex items-center gap-1">
+                                    <Loader2 size={12} className="animate-spin" /> Saving...
+                                </span>
+                            ) : lastSaved > 0 ? (
+                                <span className="text-green-400 text-xs flex items-center gap-1 animate-in fade-in">
+                                    <CheckCircle size={12} /> Saved
+                                </span>
+                            ) : null}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <Card className="glass-panel border-0 flex-1 overflow-hidden relative flex flex-col">
+            <Card className="glass-panel border-0 overflow-hidden">
                 {loading ? (
-                    <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="p-12 flex items-center justify-center">
                         <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
                     </div>
                 ) : (
-                    <div className="flex-1 overflow-auto">
+                    <div className="overflow-x-auto">
                         <Table>
-                            <TableHeader className="bg-black/40 sticky top-0 z-10 backdrop-blur-md">
+                            <TableHeader className="bg-black/40">
                                 <TableRow className="border-white/10 hover:bg-transparent">
                                     {mode === 'match_stats' ? (
                                         <>
                                             <TableHead className="text-gray-300 min-w-[150px]">Player</TableHead>
-                                            <TableHead className="text-gray-300 min-w-[120px]">Date</TableHead>
+                                            <TableHead className="text-gray-300 min-w-[130px]">Date</TableHead>
                                             <TableHead className="text-gray-300 min-w-[150px]">Opponent</TableHead>
                                             <TableHead className="text-gray-300 text-center w-[80px]">Mins</TableHead>
                                             <TableHead className="text-gray-300 text-center w-[80px]">Goals</TableHead>
@@ -143,13 +194,13 @@ export default function DataEditorPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {data.map((row) => (
+                                {filteredData.map((row) => (
                                     <TableRow key={mode === 'match_stats' ? `${row.match_id}-${row.player_name}` : `${row.player_name}-${row.exercise}`} className="border-white/5 hover:bg-white/5">
                                         {mode === 'match_stats' ? (
                                             <>
-                                                <TableCell className="font-medium text-white">{row.player_name}</TableCell>
-                                                <TableCell className="text-gray-400 text-xs">{row.match_date}</TableCell>
-                                                <TableCell className="text-gray-400 text-xs">{row.match_opponent}</TableCell>
+                                                <EditableCell row={row} field="player_name" val={row.player_name} onUpdate={handleUpdate} className="text-white font-medium" />
+                                                <EditableCell row={row} field="match_date" val={row.match_date} onUpdate={handleUpdate} className="text-gray-400 text-xs" type="date" />
+                                                <EditableCell row={row} field="match_opponent" val={row.match_opponent} onUpdate={handleUpdate} className="text-gray-400 text-xs" />
 
                                                 <EditableCell row={row} field="minutes_played" val={row.minutes_played} onUpdate={handleUpdate} />
                                                 <EditableCell row={row} field="goals" val={row.goals} onUpdate={handleUpdate} highlight />
@@ -161,8 +212,8 @@ export default function DataEditorPage() {
                                             </>
                                         ) : (
                                             <>
-                                                <TableCell className="font-medium text-white">{row.player_name}</TableCell>
-                                                <TableCell className="text-blue-300 font-medium">{row.exercise}</TableCell>
+                                                <EditableCell row={row} field="player_name" val={row.player_name} onUpdate={handleUpdate} className="text-white font-medium" />
+                                                <EditableCell row={row} field="exercise" val={row.exercise} onUpdate={handleUpdate} className="text-blue-300 font-medium" />
                                                 <EditableCell row={row} field="pr_1" val={row.pr_1} onUpdate={handleUpdate} />
                                                 <EditableCell row={row} field="pr_2" val={row.pr_2} onUpdate={handleUpdate} />
                                                 <EditableCell row={row} field="pr_3" val={row.pr_3} onUpdate={handleUpdate} />
@@ -171,6 +222,13 @@ export default function DataEditorPage() {
                                         )}
                                     </TableRow>
                                 ))}
+                                {filteredData.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={10} className="text-center py-8 text-gray-500">
+                                            No data matches your search.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </div>
@@ -180,7 +238,7 @@ export default function DataEditorPage() {
     );
 }
 
-const EditableCell = ({ row, field, val, onUpdate, highlight }: any) => {
+const EditableCell = ({ row, field, val, onUpdate, highlight, className, type = "text" }: any) => {
     const [localVal, setLocalVal] = useState(val ?? '');
 
     useEffect(() => {
@@ -196,10 +254,11 @@ const EditableCell = ({ row, field, val, onUpdate, highlight }: any) => {
     return (
         <TableCell className="p-1">
             <Input
+                type={type}
                 value={localVal}
                 onChange={(e) => setLocalVal(e.target.value)}
                 onBlur={handleBlur}
-                className={`h-8 w-full text-center bg-transparent border-transparent hover:border-white/20 focus:bg-white/10 focus:border-blue-500 transition-all ${highlight ? 'text-green-400 font-bold' : 'text-gray-300'}`}
+                className={`h-8 w-full bg-transparent border-transparent hover:border-white/20 focus:bg-white/10 focus:border-blue-500 transition-all ${className ? className : 'text-center'} ${highlight ? 'text-green-400 font-bold' : (!className && 'text-gray-300')}`}
             />
         </TableCell>
     )

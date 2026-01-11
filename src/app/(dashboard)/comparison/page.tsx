@@ -99,10 +99,39 @@ export default function ComparisonPage() {
                     <StatRow label="Total Tackles" val1={player1.totalTackles} val2={player2.totalTackles} unit="" />
                     <StatRow label="Exercises Tracked (Gym)" val1={player1.perfCount || 0} val2={player2.perfCount || 0} unit="" />
                     <StatRow label="Red/Yellow Cards" val1={`${player1.redCards}/${player1.yellowCards}`} val2={`${player2.redCards}/${player2.yellowCards}`} unit="" />
+
+                    {/* Dynamic Gym Stats Comparison */}
+                    {getCommonExercises(player1, player2).map((ex) => (
+                        <StatRow
+                            key={ex.name}
+                            label={`${ex.name} MAX`}
+                            val1={ex.p1Max || '-'}
+                            val2={ex.p2Max || '-'}
+                            unit="kg"
+                        />
+                    ))}
                 </div>
             )}
         </div>
     );
+}
+
+function getCommonExercises(p1: any, p2: any) {
+    const p1Exercises = p1.gymData || [];
+    const p2Exercises = p2.gymData || [];
+
+    // Get all unique exercises from both players
+    const allExNames = Array.from(new Set([...p1Exercises.map((e: any) => e.exercise), ...p2Exercises.map((e: any) => e.exercise)]));
+
+    return allExNames.map(name => {
+        const p1Data = p1Exercises.find((e: any) => e.exercise === name);
+        const p2Data = p2Exercises.find((e: any) => e.exercise === name);
+        return {
+            name,
+            p1Max: p1Data ? p1Data.maxPR : null,
+            p2Max: p2Data ? p2Data.maxPR : null
+        };
+    }).filter(e => e.p1Max !== null || e.p2Max !== null); // Show if at least one player has data
 }
 
 function StatRow({ label, val1, val2, unit, highlight }: { label: string, val1: string | number, val2: string | number, unit: string, highlight?: boolean }) {

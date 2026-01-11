@@ -233,10 +233,15 @@ export default function PlayerStatsPage() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         {player.perfCount > 0 ? (
-                                            <div className="flex justify-end">
+                                            <div className="flex flex-col items-end gap-1">
                                                 <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30 flex items-center gap-1">
                                                     <Dumbbell size={12} /> {player.perfCount}
                                                 </Badge>
+                                                {player.gymData && player.gymData.length > 0 && (
+                                                    <span className="text-[10px] text-gray-400">
+                                                        Best: {Math.max(...player.gymData.map((d: any) => d.maxPR))} kg
+                                                    </span>
+                                                )}
                                             </div>
                                         ) : (
                                             <span className="text-gray-600">-</span>

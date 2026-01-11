@@ -46,16 +46,27 @@ export default function AdminUsersPage() {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            // Fetch from profiles
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .order('created_at', { ascending: false });
+            // Fetch from API to bypass RLS via Service Role
+            const res = await fetch('/api/admin/users');
+            if (!res.ok) throw new Error("Failed to fetch users");
+            const data = await res.json();
 
-            if (error) throw error;
+            // Check for API errors (like missing service key)
+            if (data.error) throw new Error(data.error);
+
             setUsers(data || []);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error fetching users:", err);
+            // Fallback to client-side fetch if API fails (e.g. key missing)
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                if (!error) setUsers(data || []);
+            } catch (fallbackErr) {
+                console.error("Fallback failed", fallbackErr);
+            }
         } finally {
             setLoading(false);
         }
