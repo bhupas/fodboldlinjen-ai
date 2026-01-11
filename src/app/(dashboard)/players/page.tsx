@@ -170,7 +170,7 @@ export default function PlayerStatsPage() {
             </Card>
 
             {/* Results Table */}
-            <div className="glass-panel overflow-hidden rounded-xl border border-white/10">
+            <div className="glass-panel overflow-hidden rounded-xl border border-white/10 overflow-x-auto">
                 <Table>
                     <TableHeader className="bg-black/40">
                         <TableRow className="border-white/10 hover:bg-transparent">

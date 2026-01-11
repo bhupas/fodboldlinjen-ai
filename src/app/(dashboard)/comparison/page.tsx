@@ -119,10 +119,10 @@ function StatRow({ label, val1, val2, unit, highlight }: { label: string, val1: 
     }
 
     return (
-        <div className={`grid grid-cols-3 gap-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors ${highlight ? 'bg-white/5' : ''}`}>
-            <div className={`text-right font-mono ${win1 ? 'text-blue-400 font-bold' : 'text-gray-300'}`}>{val1}{unit}</div>
-            <div className="text-center text-gray-400 text-sm">{label}</div>
-            <div className={`text-left font-mono ${win2 ? 'text-purple-400 font-bold' : 'text-gray-300'}`}>{val2}{unit}</div>
+        <div className={`grid grid-cols-3 gap-2 md:gap-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors ${highlight ? 'bg-white/5' : ''}`}>
+            <div className={`text-right font-mono text-xs md:text-base ${win1 ? 'text-blue-400 font-bold' : 'text-gray-300'}`}>{val1}{unit}</div>
+            <div className="text-center text-gray-400 text-[10px] md:text-sm flex items-center justify-center">{label}</div>
+            <div className={`text-left font-mono text-xs md:text-base ${win2 ? 'text-purple-400 font-bold' : 'text-gray-300'}`}>{val2}{unit}</div>
         </div>
     )
 }

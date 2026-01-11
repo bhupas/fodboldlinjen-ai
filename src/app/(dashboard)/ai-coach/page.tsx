@@ -67,9 +67,9 @@ export default function AICoachPage() {
     };
 
     return (
-        <div className="h-[calc(100vh-100px)] w-full flex flex-col md:flex-row gap-6 p-4">
+        <div className="h-auto min-h-[calc(100vh-100px)] md:h-[calc(100vh-100px)] w-full flex flex-col md:flex-row gap-6 p-4">
             {/* Left Panel: Configuration */}
-            <Card className="w-full md:w-1/3 flex flex-col glass-panel border-0 shadow-2xl overflow-hidden">
+            <Card className="w-full md:w-1/3 flex flex-col glass-panel border-0 shadow-2xl overflow-hidden h-auto md:h-full">
                 <div className="p-6 border-b border-white/10 bg-black/20">
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
                         <Sparkles className="text-blue-400" />
@@ -239,7 +239,7 @@ export default function AICoachPage() {
             </Card>
 
             {/* Right Panel: Output */}
-            <Card className="flex-1 flex flex-col glass-panel border-0 shadow-2xl overflow-hidden relative min-h-[500px]">
+            <Card className="flex-1 flex flex-col glass-panel border-0 shadow-2xl overflow-hidden relative min-h-[500px] h-auto md:h-full">
                 <div className="p-6 border-b border-white/10 bg-black/20 flex justify-between items-center">
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
                         <FileText className="text-purple-400" />

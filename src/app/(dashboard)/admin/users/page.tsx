@@ -111,7 +111,7 @@ export default function AdminUsersPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-white flex items-center gap-2">
                         <Shield className="text-blue-500" />
@@ -120,7 +120,7 @@ export default function AdminUsersPage() {
                     <p className="text-gray-400 mt-1">Manage system access and roles</p>
                 </div>
                 {/* Search */}
-                <div className="relative w-64">
+                <div className="relative w-full md:w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                     <Input
                         placeholder="Search users..."
@@ -131,7 +131,7 @@ export default function AdminUsersPage() {
                 </div>
             </div>
 
-            <Card className="glass-panel border-0 bg-black/20 p-6">
+            <Card className="glass-panel border-0 bg-black/20 p-6 overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow className="border-white/10 hover:bg-white/5">
@@ -165,8 +165,8 @@ export default function AdminUsersPage() {
                                     <TableCell className="text-gray-300">{user.email}</TableCell>
                                     <TableCell>
                                         <span className={`px-2 py-1 rounded text-xs font-medium ${user.role === 'admin'
-                                                ? 'bg-purple-500/20 text-purple-200 border border-purple-500/30'
-                                                : 'bg-blue-500/20 text-blue-200 border border-blue-500/30'
+                                            ? 'bg-purple-500/20 text-purple-200 border border-purple-500/30'
+                                            : 'bg-blue-500/20 text-blue-200 border border-blue-500/30'
                                             }`}>
                                             {user.role}
                                         </span>
