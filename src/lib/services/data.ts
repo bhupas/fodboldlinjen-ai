@@ -17,8 +17,12 @@ const uploadPerformanceData = async (rows: any[]) => {
     let successCount = 0;
     const errors: string[] = [];
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { successCount: 0, errors: ["User not authenticated"] };
+
     // Map rows to DB columns
     const toInsert = rows.map(r => ({
+        user_id: user.id, // Explicitly bind to user
         player_name: r.Player,
         exercise: r.Exercise,
         pr_1: parseFloat(r.PR1) || null,
@@ -34,7 +38,7 @@ const uploadPerformanceData = async (rows: any[]) => {
     try {
         const { error } = await supabase
             .from('performance_stats')
-            .upsert(toInsert, { onConflict: 'player_name, exercise' });
+            .upsert(toInsert, { onConflict: 'user_id, player_name, exercise' });
 
         if (error) throw error;
 
@@ -51,6 +55,9 @@ const uploadPerformanceData = async (rows: any[]) => {
 const uploadMatchData = async (rows: any[]) => {
     let successCount = 0;
     let errors: string[] = [];
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { successCount: 0, errors: ["User not authenticated"] };
 
     // 1. Group by Match (Opponent + Date)
     const matchesMap = new Map<string, { date: string, opponent: string, team: string, rows: any[] }>();
@@ -82,6 +89,7 @@ const uploadMatchData = async (rows: any[]) => {
     // 2. Insert Matches and Stats
     for (const [key, matchData] of matchesMap.entries()) {
         try {
+            // RLS automatically filters by user_id for SELECT
             const { data: existingMatches, error: matchCheckError } = await supabase
                 .from('matches')
                 .select('id')
@@ -97,6 +105,7 @@ const uploadMatchData = async (rows: any[]) => {
                 const { data: newMatch, error: createError } = await supabase
                     .from('matches')
                     .insert({
+                        user_id: user.id, // Explicitly bind
                         date: matchData.date,
                         opponent: matchData.opponent,
                         team: matchData.team
@@ -125,6 +134,7 @@ const uploadMatchData = async (rows: any[]) => {
                 feedback: r.Feedback || ''
             }));
 
+            // player_stats has no user_id column, relies on match_id link
             const { error: statsError } = await supabase
                 .from('player_stats')
                 .upsert(statsToInsert, { onConflict: 'match_id, player_name' });
