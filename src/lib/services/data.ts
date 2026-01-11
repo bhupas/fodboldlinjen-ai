@@ -23,8 +23,8 @@ const uploadPerformanceData = async (rows: any[]) => {
     // Map rows to DB columns
     const toInsert = rows.map(r => ({
         user_id: user.id, // Explicitly bind to user
-        player_name: r.Player,
-        exercise: r.Exercise,
+        player_name: String(r.Player || '').trim(),
+        exercise: String(r.Exercise || '').trim(),
         pr_1: parseFloat(r.PR1) || null,
         pr_2: parseFloat(r.PR2) || null,
         pr_3: parseFloat(r.PR3) || null,
@@ -72,14 +72,14 @@ const uploadMatchData = async (rows: any[]) => {
         }
 
         const isoDate = !isNaN(dateObj.getTime()) ? dateObj.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-        const opponent = row.Opponent || 'Unknown Opponent';
+        const opponent = String(row.Opponent || '').trim() || 'Unknown Opponent';
         const key = `${isoDate}_${opponent}`;
 
         if (!matchesMap.has(key)) {
             matchesMap.set(key, {
                 date: isoDate,
                 opponent: opponent,
-                team: row.Team || 'My Team',
+                team: String(row.Team || '').trim() || 'My Team',
                 rows: []
             });
         }
@@ -119,7 +119,7 @@ const uploadMatchData = async (rows: any[]) => {
 
             const statsToInsert = matchData.rows.map(r => ({
                 match_id: matchId,
-                player_name: r.Player,
+                player_name: String(r.Player || '').trim(),
                 successful_passes: Number(r.Successful_Passes) || 0,
                 total_passes: Number(r.Total_Passes) || 0,
                 total_shots: Number(r.Total_Shots) || 0,
