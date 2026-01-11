@@ -422,7 +422,7 @@ export default function PlayerStatsPage() {
                                     </DataTableCell>
                                     <DataTableCell className="text-right text-muted-foreground font-mono">{player.games}</DataTableCell>
                                     <DataTableCell className="text-right text-muted-foreground font-mono">
-                                        {player.minutes}'
+                                        {player.minutes}&apos;
                                     </DataTableCell>
                                     <DataTableCell className="text-right">
                                         {player.goals > 0 && (

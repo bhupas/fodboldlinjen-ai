@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
@@ -125,6 +125,57 @@ export default function SettingsPage() {
         }
     };
 
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file || !user) return;
+
+        setSaving(true);
+        setMessage(null);
+
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file);
+
+            if (uploadError) {
+                throw uploadError;
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+
+            setAvatarUrl(publicUrl);
+
+            // Update profile immediately
+            const updates = {
+                id: user.id,
+                avatar_url: publicUrl,
+                updated_at: new Date().toISOString(),
+            };
+
+            const { error: updateError } = await supabase.from('profiles').upsert(updates);
+            if (updateError) throw updateError;
+
+            setMessage({ text: "Profile picture updated!", type: "success" });
+
+        } catch (error: any) {
+            setMessage({ text: error.message, type: "error" });
+        } finally {
+            setSaving(false);
+        }
+    };
+
     if (loading) return (
         <div className="flex items-center justify-center min-h-[50vh]">
             <Loader2 className="animate-spin text-primary" size={32} />
@@ -164,18 +215,28 @@ export default function SettingsPage() {
                             <div className="flex flex-col md:flex-row gap-8">
                                 {/* Avatar */}
                                 <div className="flex flex-col items-center gap-4">
-                                    <div className="w-32 h-32 rounded-full bg-muted flex items-center justify-center border-4 border-background shadow-xl overflow-hidden relative group">
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                    />
+                                    <div
+                                        onClick={handleAvatarClick}
+                                        className="w-32 h-32 rounded-full bg-muted flex items-center justify-center border-4 border-background shadow-xl overflow-hidden relative group cursor-pointer"
+                                    >
                                         {avatarUrl ? (
                                             <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                                         ) : (
                                             <User size={48} className="text-muted-foreground" />
                                         )}
-                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Camera className="text-white" size={24} />
                                         </div>
                                     </div>
                                     <p className="text-xs text-muted-foreground text-center max-w-[150px]">
-                                        Profile picture URL (Upload feature coming soon)
+                                        Click to upload new picture
                                     </p>
                                 </div>
 
