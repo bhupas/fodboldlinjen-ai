@@ -13,7 +13,8 @@ import {
     LogOut,
     Sparkles,
     Menu,
-    X
+    X,
+    Database
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
     { href: "/players", label: "Player Stats", icon: Users },
     { href: "/comparison", label: "Head to Head", icon: Activity },
     { href: "/ai-coach", label: "AI Coach", icon: BrainCircuit },
+    { href: "/editor", label: "Data Editor", icon: Database },
     { href: "/admin/users", label: "Sys Admin", icon: Users },
 ];
 

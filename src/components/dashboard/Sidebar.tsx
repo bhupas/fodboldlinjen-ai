@@ -10,7 +10,8 @@ import {
     Activity,
     BrainCircuit,
     LogOut,
-    Sparkles
+    Sparkles,
+    Database
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
     { href: "/players", label: "Player Stats", icon: Users },
     { href: "/comparison", label: "Head to Head", icon: Activity },
     { href: "/ai-coach", label: "AI Coach", icon: BrainCircuit },
+    { href: "/editor", label: "Data Editor", icon: Database },
     { href: "/admin/users", label: "Sys Admin", icon: Users },
 ];
 
