@@ -42,11 +42,11 @@ export default function LandingPage() {
         </div>
 
         <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-tight">
-          <span className="bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/40">
+          <span className="text-white">
             Transform Your Team Into
           </span>
           <br />
-          <span className="gradient-text animate-gradient bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500">
+          <span className="gradient-text">
             Elite Performers
           </span>
         </h1>
@@ -72,10 +72,6 @@ export default function LandingPage() {
 
         {/* Trust Indicators */}
         <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-gray-500 mb-20">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-green-500" />
-            <span>No credit card required</span>
-          </div>
           <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-green-500" />
             <span>Instant setup</span>

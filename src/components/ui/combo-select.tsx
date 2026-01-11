@@ -1,9 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { Check, Search } from "lucide-react"
+import { Check, Search, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Input } from "@/components/ui/input"
 
 export interface Option {
     label: string
@@ -61,8 +60,8 @@ export function ComboSelect({
         <div ref={containerRef} className={cn("relative w-full", className)}>
             {/* Search Input */}
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
                     type="text"
                     placeholder={selectedOption ? selectedOption.label : searchPlaceholder}
                     value={searchTerm}
@@ -72,38 +71,45 @@ export function ComboSelect({
                     }}
                     onFocus={() => setOpen(true)}
                     className={cn(
-                        "pl-10 bg-white/5 border-white/10 text-white h-10",
-                        selectedOption && !searchTerm && "text-white"
+                        "w-full h-10 pl-10 pr-10 rounded-lg text-sm transition-colors",
+                        "bg-background border border-border",
+                        "text-foreground placeholder:text-muted-foreground",
+                        "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary",
                     )}
                 />
+                <ChevronDown className={cn(
+                    "absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-transform",
+                    open && "rotate-180"
+                )} />
             </div>
 
             {/* Selected Value Display */}
-            {selectedOption && !open && (
-                <div className="absolute left-10 top-1/2 -translate-y-1/2 text-white pointer-events-none text-sm">
+            {selectedOption && !open && !searchTerm && (
+                <div className="absolute left-10 top-1/2 -translate-y-1/2 text-foreground pointer-events-none text-sm">
                     {selectedOption.label}
                 </div>
             )}
 
             {/* Dropdown List */}
             {open && (
-                <div className="absolute z-50 w-full mt-1 bg-[#1e293b] border border-white/10 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {filteredOptions.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-gray-400">{emptyText}</div>
+                        <div className="px-3 py-2 text-sm text-muted-foreground">{emptyText}</div>
                     ) : (
                         filteredOptions.map((option) => (
                             <div
                                 key={option.value}
                                 onClick={() => handleSelect(option.value)}
                                 className={cn(
-                                    "flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-white/10 transition-colors",
-                                    value === option.value ? "bg-white/10 text-white" : "text-gray-300"
+                                    "flex items-center px-3 py-2 text-sm cursor-pointer transition-colors",
+                                    "hover:bg-accent",
+                                    value === option.value ? "bg-accent text-foreground" : "text-foreground"
                                 )}
                             >
                                 <Check
                                     className={cn(
-                                        "mr-2 h-4 w-4",
-                                        value === option.value ? "opacity-100 text-blue-400" : "opacity-0"
+                                        "mr-2 h-4 w-4 text-primary",
+                                        value === option.value ? "opacity-100" : "opacity-0"
                                     )}
                                 />
                                 {option.label}

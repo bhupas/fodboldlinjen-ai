@@ -4,70 +4,53 @@
 
 @layer base {
 
-  /* ========== Dark Theme (Default) ========== */
+  /* ========== Dark Theme ========== */
   :root,
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 47% 6%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 222 47% 8%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 47% 10%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 17%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 217 91% 60%;
     --radius: 0.5rem;
-
-    /* Custom colors for dark mode */
-    --glass-bg: rgba(255, 255, 255, 0.05);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --text-primary: #ffffff;
-    --text-secondary: #9ca3af;
-    --text-muted: #6b7280;
-    --surface: #0f172a;
-    --surface-hover: rgba(255, 255, 255, 0.1);
   }
 
   /* ========== Light Theme ========== */
   .light {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 0 0% 99%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 217.2 91.2% 59.8%;
-
-    /* Custom colors for light mode */
-    --glass-bg: rgba(255, 255, 255, 0.8);
-    --glass-border: rgba(0, 0, 0, 0.1);
-    --text-primary: #1e293b;
-    --text-secondary: #475569;
-    --text-muted: #64748b;
-    --surface: #f8fafc;
-    --surface-hover: rgba(0, 0, 0, 0.05);
+    --popover-foreground: 222 47% 11%;
+    --primary: 217 91% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 40%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 13% 90%;
+    --input: 220 13% 90%;
+    --ring: 217 91% 55%;
+    --radius: 0.5rem;
   }
 }
 
@@ -76,70 +59,66 @@
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    line-height: 1.6;
   }
 
-  html {
-    scroll-behavior: smooth;
+  /* Better heading styles */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-semibold tracking-tight;
+    line-height: 1.2;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl;
+  }
+
+  h3 {
+    @apply text-xl md:text-2xl;
   }
 }
 
-/* ========== Premium Glassmorphism ========== */
+/* ========== Glass Panel ========== */
 .glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  @apply shadow-2xl;
-}
-
-.dark .glass-panel {
-  @apply bg-gradient-to-br from-white/[0.08] to-white/[0.02];
+  @apply bg-card border border-border shadow-sm rounded-xl;
 }
 
 .light .glass-panel {
-  @apply bg-white/80 shadow-lg;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+  @apply bg-white shadow-md;
 }
 
 .glass-card {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  @apply transition-all duration-300;
+  @apply bg-card border border-border rounded-lg transition-all duration-200;
 }
 
 .glass-card:hover {
-  background: var(--surface-hover);
-  border-color: var(--glass-border);
+  @apply shadow-md;
 }
 
-/* ========== Glow Effects ========== */
-.glow-blue {
-  box-shadow: 0 0 40px rgba(59, 130, 246, 0.3), 0 0 80px rgba(59, 130, 246, 0.1);
-}
-
-.glow-purple {
-  box-shadow: 0 0 40px rgba(168, 85, 247, 0.3), 0 0 80px rgba(168, 85, 247, 0.1);
-}
-
-.glow-green {
-  box-shadow: 0 0 40px rgba(34, 197, 94, 0.3), 0 0 80px rgba(34, 197, 94, 0.1);
-}
-
-.glow-text {
-  text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
-}
-
-/* ========== Gradient Text ========== */
+/* ========== Gradient Text - FIXED ========== */
 .gradient-text {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500;
-}
-
-.gradient-text-gold {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-amber-400 via-yellow-300 to-orange-400;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 /* ========== Animations ========== */
@@ -151,7 +130,7 @@
   }
 
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-6px);
   }
 }
 
@@ -159,33 +138,11 @@
 
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
   }
 
   50% {
-    box-shadow: 0 0 40px rgba(59, 130, 246, 0.6), 0 0 60px rgba(59, 130, 246, 0.3);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-@keyframes gradient-shift {
-
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
+    box-shadow: 0 0 25px rgba(59, 130, 246, 0.5);
   }
 }
 
@@ -197,81 +154,47 @@
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
-.animate-shimmer {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
-}
-
 .animate-gradient {
   background-size: 200% 200%;
-  animation: gradient-shift 3s ease infinite;
+  animation: none;
+  /* Remove animation that was breaking it */
 }
 
-/* ========== Premium Button Styles ========== */
+/* ========== Premium Button ========== */
 .btn-premium {
-  @apply relative overflow-hidden px-6 py-3 rounded-xl font-semibold text-white;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  transition: all 0.3s ease;
-}
-
-.btn-premium::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s ease;
-}
-
-.btn-premium:hover::before {
-  left: 100%;
+  @apply relative overflow-hidden px-6 py-3 rounded-xl font-semibold;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  color: white !important;
+  transition: all 0.2s ease;
 }
 
 .btn-premium:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 40px rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.35);
 }
 
-/* ========== Card Hover Effects ========== */
+/* ========== Card Hover ========== */
 .card-hover {
-  @apply transition-all duration-300;
+  @apply transition-all duration-200;
 }
 
 .card-hover:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
+  @apply shadow-lg;
 }
 
-.dark .card-hover:hover {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-}
-
-.light .card-hover:hover {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-}
-
-/* ========== Stat Number Animation ========== */
+/* ========== Stat Number ========== */
 .stat-number {
-  @apply font-bold tabular-nums;
-  font-feature-settings: "tnum";
+  @apply font-bold;
+  font-variant-numeric: tabular-nums;
 }
 
-/* ========== Loading Skeleton ========== */
+/* ========== Skeleton ========== */
 .skeleton {
-  @apply rounded-lg animate-pulse;
+  @apply bg-muted rounded-lg animate-pulse;
 }
 
-.dark .skeleton {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.light .skeleton {
-  @apply bg-gray-200;
-}
-
-/* ========== Scrollbar Styling ========== */
+/* ========== Scrollbar ========== */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -281,40 +204,189 @@
   background: transparent;
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 9999px;
+::-webkit-scrollbar-thumb {
+  @apply bg-border rounded-full;
 }
 
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.light ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 9999px;
-}
-
-.light ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/50;
 }
 
 /* ========== Selection ========== */
 ::selection {
-  background: rgba(59, 130, 246, 0.3);
+  background: hsl(var(--primary) / 0.3);
 }
 
-.dark ::selection {
-  color: #ffffff;
-}
-
-.light ::selection {
-  color: #1f2937;
-}
-
-/* ========== Focus Styles ========== */
+/* ========== Focus - Accessibility ========== */
 input:focus,
 select:focus,
-button:focus-visible {
-  @apply outline-none ring-2 ring-blue-500/50 ring-offset-0;
+button:focus-visible,
+textarea:focus,
+a:focus-visible {
+  @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+}
+
+/* ========================================
+   LIGHT MODE TEXT FIXES
+   ======================================== */
+
+.light .text-white {
+  color: hsl(var(--foreground)) !important;
+}
+
+.light .text-gray-300,
+.light .text-gray-400 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.light .text-gray-500,
+.light .text-gray-600 {
+  color: hsl(220 9% 50%) !important;
+}
+
+/* Keep white text on colored backgrounds */
+.light .bg-blue-600,
+.light .bg-blue-500,
+.light .bg-purple-600,
+.light .bg-purple-500,
+.light .bg-green-600,
+.light .bg-green-500,
+.light .btn-premium {
+  color: white !important;
+}
+
+.light .bg-blue-600 *,
+.light .bg-purple-600 *,
+.light .bg-green-600 *,
+.light .btn-premium * {
+  color: white !important;
+}
+
+/* ========================================
+   LIGHT MODE BACKGROUND FIXES
+   ======================================== */
+
+.light .bg-\[#0f172a\],
+.light .bg-\[#0a0a0f\],
+.light .bg-\[#1e293b\] {
+  background-color: hsl(var(--background)) !important;
+}
+
+.light .bg-white\/5,
+.light .bg-white\/10,
+.light .bg-black\/20 {
+  background-color: hsl(var(--secondary)) !important;
+}
+
+.light .hover\:bg-white\/5:hover,
+.light .hover\:bg-white\/10:hover {
+  background-color: hsl(var(--accent)) !important;
+}
+
+/* ========================================
+   LIGHT MODE BORDER FIXES  
+   ======================================== */
+
+.light .border-white\/5,
+.light .border-white\/10,
+.light .border-white\/20 {
+  border-color: hsl(var(--border)) !important;
+}
+
+/* ========================================
+   LIGHT MODE COLOR FIXES
+   ======================================== */
+
+.light .text-blue-400 {
+  color: #2563eb !important;
+}
+
+.light .text-purple-400 {
+  color: #7c3aed !important;
+}
+
+.light .text-green-400 {
+  color: #16a34a !important;
+}
+
+.light .text-yellow-400 {
+  color: #ca8a04 !important;
+}
+
+.light .text-pink-400 {
+  color: #db2777 !important;
+}
+
+.light .text-red-400 {
+  color: #dc2626 !important;
+}
+
+.light .text-orange-400 {
+  color: #ea580c !important;
+}
+
+/* Chart colors in light mode */
+.light .recharts-text {
+  fill: hsl(var(--muted-foreground)) !important;
+}
+
+.light .recharts-cartesian-grid line {
+  stroke: hsl(var(--border)) !important;
+}
+
+/* ========================================
+   LIGHT MODE TABLE FIXES
+   ======================================== */
+
+.light table {
+  background-color: white;
+}
+
+.light thead {
+  background-color: #f8fafc !important;
+}
+
+.light th {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+
+.light td {
+  color: #334155 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.light tbody tr:hover {
+  background-color: #f1f5f9 !important;
+}
+
+/* ========================================
+   ACCESSIBILITY IMPROVEMENTS
+   ======================================== */
+
+/* Minimum touch target size */
+button,
+a,
+input,
+select,
+textarea {
+  min-height: 44px;
+}
+
+/* Better link styling */
+a {
+  @apply transition-colors;
+}
+
+/* Reduced motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

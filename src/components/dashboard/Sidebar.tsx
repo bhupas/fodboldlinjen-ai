@@ -132,29 +132,26 @@ export default function Sidebar() {
             </nav>
 
             {/* Footer */}
-            <div className="p-4 border-t border-border/50 space-y-2">
-                {/* Theme Toggle */}
-                <Button
-                    variant="ghost"
-                    className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-accent/50 gap-3 py-3 rounded-xl"
-                    onClick={toggleTheme}
-                >
-                    <div className="w-9 h-9 rounded-lg bg-accent/50 flex items-center justify-center">
-                        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                    </div>
-                    <span className="font-medium">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-                </Button>
-
+            <div className="p-4 border-t border-border/50 flex items-center justify-between gap-2">
                 {/* Sign Out */}
                 <Button
                     variant="ghost"
-                    className="w-full justify-start text-muted-foreground hover:text-red-500 hover:bg-red-500/10 gap-3 py-3 rounded-xl"
+                    className="flex-1 justify-start text-muted-foreground hover:text-red-500 hover:bg-red-500/10 gap-2 py-2.5 px-3 rounded-xl text-sm"
                     onClick={handleSignOut}
                 >
-                    <div className="w-9 h-9 rounded-lg bg-accent/50 flex items-center justify-center">
-                        <LogOut size={18} />
-                    </div>
-                    <span className="font-medium">Sign Out</span>
+                    <LogOut size={16} />
+                    <span>Sign Out</span>
+                </Button>
+
+                {/* Theme Toggle - Minimal */}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="w-10 h-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                    onClick={toggleTheme}
+                    title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                >
+                    {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
                 </Button>
             </div>
         </aside>
