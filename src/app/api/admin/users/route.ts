@@ -8,29 +8,33 @@ export async function DELETE(request: Request) {
 
     if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
-    const cookieStore = cookies()
-    const supabase = createServerClient(
+    // 1. Check for Service Role Key
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceRoleKey) {
+        return NextResponse.json({ error: 'Server misconfiguration: Missing Service Role Key' }, { status: 500 });
+    }
+
+    // 2. Create Admin Client
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        serviceRoleKey,
         {
-            cookies: {
-                get(name: string) {
-                    return cookieStore.get(name)?.value
-                },
-                set(name: string, value: string, options: CookieOptions) {
-                    cookieStore.set({ name, value, ...options })
-                },
-                remove(name: string, options: CookieOptions) {
-                    cookieStore.set({ name, value: '', ...options })
-                },
-            },
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false
+            }
         }
-    )
+    );
 
-    // RLS will handle the permission check if policies are set up correctly
-    const { error } = await supabase.from('profiles').delete().eq('id', id)
+    // 3. Delete from Auth Users (System Level Delete)
+    // This will cascade to profiles due to the foreign key constraint
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (authError) {
+        console.error("Auth delete error:", authError);
+        return NextResponse.json({ error: authError.message }, { status: 500 })
+    }
 
     return NextResponse.json({ success: true })
 }
