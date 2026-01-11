@@ -28,6 +28,8 @@ type Profile = {
     email: string;
     first_name: string | null;
     last_name: string | null;
+    date_of_birth: string | null; // Added
+    avatar_url: string | null; // Added
     role: string;
     created_at: string;
 };
@@ -156,6 +158,12 @@ export default function AdminUsersPage() {
         return styles[role] || styles.user;
     };
 
+    const calculateAge = (dob: string | null) => {
+        if (!dob) return null;
+        const diff = Date.now() - new Date(dob).getTime();
+        return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+    };
+
     return (
         <div className="space-y-8">
             {/* Header */}
@@ -242,7 +250,7 @@ export default function AdminUsersPage() {
             <DataTable>
                 <DataTableHeader>
                     <DataTableHead>User</DataTableHead>
-                    <DataTableHead>Email</DataTableHead>
+                    <DataTableHead>Age / DOB</DataTableHead>
                     <DataTableHead>Role</DataTableHead>
                     <DataTableHead>Joined</DataTableHead>
                     <DataTableHead className="text-right">Actions</DataTableHead>
@@ -257,14 +265,34 @@ export default function AdminUsersPage() {
                             <DataTableRow key={user.id}>
                                 <DataTableCell className="font-medium">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
-                                            {(user.first_name?.[0] || user.email?.[0] || '?').toUpperCase()}
+                                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border">
+                                            {user.avatar_url ? (
+                                                <img src={user.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+                                                    {(user.first_name?.[0] || user.email?.[0] || '?').toUpperCase()}
+                                                </div>
+                                            )}
                                         </div>
-                                        <span>{user.first_name} {user.last_name || ""}</span>
-                                        {!user.first_name && !user.last_name && <span className="text-muted-foreground">N/A</span>}
+                                        <div>
+                                            <div className="font-medium text-foreground">
+                                                {user.first_name} {user.last_name || ""}
+                                                {!user.first_name && !user.last_name && <span className="text-muted-foreground">Unknown Name</span>}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">{user.email}</div>
+                                        </div>
                                     </div>
                                 </DataTableCell>
-                                <DataTableCell className="text-muted-foreground">{user.email}</DataTableCell>
+                                <DataTableCell>
+                                    <div className="flex flex-col">
+                                        {calculateAge(user.date_of_birth) !== null ? (
+                                            <span className="font-mono text-sm">{calculateAge(user.date_of_birth)} yo</span>
+                                        ) : (
+                                            <span className="text-muted-foreground text-xs">-</span>
+                                        )}
+                                        <span className="text-xs text-muted-foreground">{user.date_of_birth || "N/A"}</span>
+                                    </div>
+                                </DataTableCell>
                                 <DataTableCell>
                                     <span className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${getRoleBadge(user.role)}`}>
                                         {user.role}
