@@ -212,7 +212,7 @@ export default function DashboardPage() {
                     icon={Target}
                     data={topPassers}
                     dataKey="avgPassing"
-                    color="hsl(var(--chart-1, 280 65% 60%))"
+                    color="#c084fc"
                     unit="%"
                     onPlayerClick={handlePlayerClick}
                 />
@@ -221,7 +221,7 @@ export default function DashboardPage() {
                     icon={Trophy}
                     data={topScorers}
                     dataKey="goals"
-                    color="hsl(var(--chart-2, 48 96% 53%))"
+                    color="#facc15"
                     onPlayerClick={handlePlayerClick}
                 />
                 <TopPlayerChart
@@ -229,7 +229,7 @@ export default function DashboardPage() {
                     icon={Activity}
                     data={topAssists}
                     dataKey="assists"
-                    color="hsl(var(--primary))"
+                    color="#60a5fa"
                     onPlayerClick={handlePlayerClick}
                 />
                 <TopPlayerChart
@@ -237,7 +237,7 @@ export default function DashboardPage() {
                     icon={Target}
                     data={topTacklers}
                     dataKey="totalTackles"
-                    color="hsl(var(--destructive, 0 84% 60%))"
+                    color="#f87171"
                     onPlayerClick={handlePlayerClick}
                 />
             </div>
@@ -294,15 +294,19 @@ function TopPlayerChart({ title, icon: Icon, data, dataKey, color, unit = "", on
                             tickLine={false}
                         />
                         <Tooltip
-                            cursor={{ fill: 'hsl(var(--accent))' }}
-                            contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                borderColor: 'hsl(var(--border))',
-                                borderRadius: '8px',
-                                color: 'hsl(var(--foreground))',
-                                fontSize: '12px'
+                            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                            content={({ active, payload, label }) => {
+                                if (active && payload && payload.length) {
+                                    const value = payload[0].value as number;
+                                    return (
+                                        <div style={{ backgroundColor: '#000', border: '1px solid #444', borderRadius: '8px', padding: '8px 12px', boxShadow: '0 4px 16px rgba(0,0,0,0.6)' }}>
+                                            <p style={{ color: '#fff', fontWeight: 600, fontSize: '13px', margin: 0 }}>{label}</p>
+                                            <p style={{ color: '#ddd', fontSize: '12px', margin: '4px 0 0 0' }}>{title}: {value.toFixed(1)}{unit}</p>
+                                        </div>
+                                    );
+                                }
+                                return null;
                             }}
-                            formatter={(val: number) => [`${val.toFixed(1)}${unit}`, title]}
                         />
                         <Bar
                             dataKey={dataKey}
@@ -312,7 +316,7 @@ function TopPlayerChart({ title, icon: Icon, data, dataKey, color, unit = "", on
                             cursor="pointer"
                         >
                             {data.map((entry: any, index: number) => (
-                                <Cell key={`cell-${index}`} fill={color} style={{ opacity: 1 - (index * 0.15) }} />
+                                <Cell key={`cell-${index}`} fill={color} />
                             ))}
                         </Bar>
                     </BarChart>

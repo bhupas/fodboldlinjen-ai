@@ -1295,25 +1295,44 @@ Vær konkret og handlingsorienteret med en positiv tone.
                                 Best Gym Performance
                             </h3>
                             <div className="space-y-3">
-                                {aggregatedPlayers
-                                    .filter(p => p.maxGymPR > 0)
-                                    .sort((a, b) => b.maxGymPR - a.maxGymPR)
-                                    .slice(0, 5)
-                                    .map((player, idx) => (
+                                {(() => {
+                                    // Calculate best PR per player from rawPerfStats
+                                    const playerBestPR = new Map<string, number>();
+                                    rawPerfStats.forEach(p => {
+                                        const name = p.player_name?.trim() || "Unknown";
+                                        const maxPR = Math.max(p.pr_1 || 0, p.pr_2 || 0, p.pr_3 || 0, p.pr_4 || 0);
+                                        if (!playerBestPR.has(name) || maxPR > playerBestPR.get(name)!) {
+                                            playerBestPR.set(name, maxPR);
+                                        }
+                                    });
+
+                                    const sortedPlayers = Array.from(playerBestPR.entries())
+                                        .filter(([_, pr]) => pr > 0)
+                                        .sort((a, b) => b[1] - a[1])
+                                        .slice(0, 5);
+
+                                    if (sortedPlayers.length === 0) {
+                                        return (
+                                            <p className="text-center text-muted-foreground py-6">No gym data available</p>
+                                        );
+                                    }
+
+                                    return sortedPlayers.map(([name, maxPR], idx) => (
                                         <div
-                                            key={player.name}
+                                            key={name}
                                             className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50"
-                                            onClick={() => router.push(`/players/${player.name}`)}
+                                            onClick={() => router.push(`/players/${name}`)}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-yellow-500 text-black' : idx === 1 ? 'bg-gray-400 text-black' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-muted text-foreground'}`}>
                                                     {idx + 1}
                                                 </span>
-                                                <span className="font-medium">{player.name}</span>
+                                                <span className="font-medium">{name}</span>
                                             </div>
-                                            <span className="text-yellow-500 font-mono">{player.maxGymPR} kg</span>
+                                            <span className="text-yellow-500 font-mono">{maxPR} kg</span>
                                         </div>
-                                    ))}
+                                    ));
+                                })()}
                             </div>
                         </Card>
 
