@@ -28,11 +28,12 @@ import {
 } from "@/components/ui/data-table";
 import { PageHeader } from "@/components/ui/page-header";
 import { FilterPanel } from "@/components/ui/filter-panel";
-import { Loader2, CheckCircle, Database, Search, Plus, Trash2 } from "lucide-react";
+import { Loader2, CheckCircle, Database, Search, Plus, Trash2, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { ComboSelect } from "@/components/ui/combo-select";
+import { Badge } from "@/components/ui/badge";
 
 export default function DataEditorPage() {
     const [mode, setMode] = useState<EditorTable>('match_stats');
@@ -60,6 +61,7 @@ export default function DataEditorPage() {
     const [opponentFilter, setOpponentFilter] = useState("");
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
+    const [showFilters, setShowFilters] = useState(false);
 
     const uniqueOpponents = useMemo(() => {
         const opps = new Set(data.filter(d => d.match_opponent).map(d => d.match_opponent));
@@ -270,6 +272,21 @@ export default function DataEditorPage() {
                             </Select>
                         </div>
 
+                        {/* Filters Button - Only show for match_stats */}
+                        {mode === 'match_stats' && (
+                            <Button
+                                variant={showFilters ? "secondary" : "outline"}
+                                className="gap-2 h-10"
+                                onClick={() => setShowFilters(!showFilters)}
+                            >
+                                <SlidersHorizontal size={16} />
+                                Filters
+                                {(opponentFilter || startDate || endDate) && (
+                                    <Badge variant="secondary" className="ml-1 px-1 h-5 text-[10px]">!</Badge>
+                                )}
+                            </Button>
+                        )}
+
                         {/* Save Status */}
                         <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-xl border border-border h-10">
                             {saving ? (
@@ -286,8 +303,8 @@ export default function DataEditorPage() {
                         </div>
                     </div>
 
-                    {/* Additional Filters for Match Stats */}
-                    {mode === 'match_stats' && (
+                    {/* Additional Filters for Match Stats - Collapsible */}
+                    {mode === 'match_stats' && showFilters && (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t animate-in slide-in-from-top-2 fade-in duration-200">
                             {/* Opposition - ComboSelect like Player Analysis */}
                             <div>
@@ -299,9 +316,6 @@ export default function DataEditorPage() {
                                     placeholder="Select opponent"
                                     searchPlaceholder="Type to search..."
                                 />
-                                {opponentFilter && (
-                                    <button onClick={() => setOpponentFilter('')} className="text-xs text-destructive mt-1 hover:underline">Clear</button>
-                                )}
                             </div>
 
                             {/* Date Range */}
