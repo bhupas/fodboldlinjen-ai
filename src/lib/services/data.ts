@@ -3,13 +3,15 @@ import { supabase } from '@/lib/supabase/client';
 import { UploadedRow } from '@/types';
 
 export const uploadData = async (rows: any[]) => {
-    if (rows.length === 0) return { successCount: 0, errors: [] };
+    if (rows.length === 0) return { successCount: 0, errors: [], type: '' };
 
     // Check type of first row
     if (rows[0]._type === 'performance') {
-        return uploadPerformanceData(rows);
+        const result = await uploadPerformanceData(rows);
+        return { ...result, type: 'performance' };
     } else {
-        return uploadMatchData(rows);
+        const result = await uploadMatchData(rows);
+        return { ...result, type: 'match' };
     }
 };
 

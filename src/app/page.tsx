@@ -4,8 +4,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { BackgroundBeams } from "@/components/aceternity/background-beams";
 import { Card } from "@/components/ui/card";
-import { StatItem } from "@/components/ui/stats-display";
-import { Sparkles, ArrowRight, BrainCircuit, BarChart3, Users, Zap, CheckCircle, Sun, Moon } from "lucide-react";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
+import { Sparkles, ArrowRight, BrainCircuit, BarChart3, Users, Zap, CheckCircle, Sun, Moon, Shield, Clock } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
 export default function LandingPage() {
@@ -76,7 +76,7 @@ export default function LandingPage() {
         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center mb-16">
           <Link href="/login">
             <Button size="lg" className="h-14 px-10 text-lg btn-premium group rounded-xl">
-              Start Free Analysis
+              Start  Analysis
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </Link>
@@ -96,6 +96,14 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-green-500" />
             <span>Excel/CSV import</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-green-500" />
+            <span>Secure & Private</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-green-500" />
+            <span>Press ? for shortcuts</span>
           </div>
         </div>
 
@@ -124,10 +132,10 @@ export default function LandingPage() {
         {/* Stats Section */}
         <div className="mt-24 w-full">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <StatItem value="100%" label="Data Privacy" />
-            <StatItem value="< 1s" label="Analysis Speed" />
-            <StatItem value="50+" label="Metrics Tracked" />
-            <StatItem value="24/7" label="AI Available" />
+            <AnimatedCounter value="100%" label="Data Privacy" />
+            <AnimatedCounter value="0.5s" label="Analysis Speed" />
+            <AnimatedCounter value="50+" label="Metrics Tracked" />
+            <AnimatedCounter value="24/7" label="AI Available" />
           </div>
         </div>
 

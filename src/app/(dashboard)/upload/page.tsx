@@ -35,7 +35,8 @@ export default function UploadPage() {
                 console.warn("Some uploads failed:", result.errors);
                 setStatus({ type: 'error', message: `Completed with warnings. ${result.successCount} saved, ${result.errors.length} failed.` });
             } else {
-                setStatus({ type: 'success', message: `Successfully uploaded ${result.successCount} records!` });
+                const typeLabel = result.type === 'performance' ? 'Performance Records' : 'Match Statistics';
+                setStatus({ type: 'success', message: `Successfully uploaded ${result.successCount} ${typeLabel}!` });
             }
             setStats(s => ({ ...s, uploaded: result.successCount }));
         } catch (err: any) {

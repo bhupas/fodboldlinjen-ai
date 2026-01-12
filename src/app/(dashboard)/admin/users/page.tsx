@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { FilterPanel, FilterRow } from "@/components/ui/filter-panel";
-import { ComboSelect } from "@/components/ui/combo-select";
+
 
 type Profile = {
     id: string;
@@ -180,13 +180,15 @@ export default function AdminUsersPage() {
                     {/* Search */}
                     <div className="md:col-span-2 relative">
                         <Label className="text-xs text-muted-foreground mb-2 block">Search User</Label>
-                        <ComboSelect
-                            options={userOptions}
-                            value={search}
-                            onValueChange={setSearch}
-                            placeholder="Select user by name or email"
-                            searchPlaceholder="Type to search..."
-                        />
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                            <Input
+                                placeholder="Search by name or email..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-9 h-10"
+                            />
+                        </div>
                         {search && (
                             <button onClick={() => setSearch('')} className="text-xs text-destructive mt-1 hover:underline text-right w-full block">Clear</button>
                         )}

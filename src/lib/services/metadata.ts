@@ -19,14 +19,15 @@ export const getMetadata = async (): Promise<MetadataOptions> => {
     if (!stats) return { matches: [], players: [] };
 
     // Unique Players
-    const players = Array.from(new Set(stats.map(s => s.player_name?.trim()))).filter(Boolean).sort();
+    const players = Array.from(new Set(stats.map((s: any) => s.player_name?.trim()))).filter(Boolean).sort() as string[];
 
     // Unique Matches
     const matchMap = new Map<string, string>();
-    stats.forEach(s => {
-        if (s.matches) {
+    stats.forEach((s: any) => {
+        const match = s.matches;
+        if (match && match.opponent && match.date) {
             // Identifier: Opponent (Date)
-            const label = `${s.matches.opponent} (${s.matches.date})`;
+            const label = `${match.opponent} (${match.date})`;
             matchMap.set(label, label); // Using label as ID for now since API uses string matching
         }
     });

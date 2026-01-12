@@ -204,32 +204,41 @@ export default function PlayerProfilePage({ params }: { params: { name: string }
                     {/* History List */}
                     <div className="space-y-3">
                         {matches.map((m: any) => (
-                            <Card key={m.id} className="glass-card p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-accent/50 transition-colors cursor-default">
-                                <div className="flex items-center gap-4">
-                                    <div className="bg-primary/10 p-3 rounded-xl text-primary">
-                                        <Calendar size={20} />
+                            <Card key={m.id} className="glass-card p-4 hover:bg-accent/50 transition-colors cursor-default">
+                                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="bg-primary/10 p-3 rounded-xl text-primary">
+                                            <Calendar size={20} />
+                                        </div>
+                                        <div>
+                                            <p className="text-foreground font-bold text-lg">{m.opponent}</p>
+                                            <p className="text-sm text-muted-foreground">{new Date(m.date).toLocaleDateString()}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-foreground font-bold text-lg">{m.opponent}</p>
-                                        <p className="text-sm text-muted-foreground">{new Date(m.date).toLocaleDateString()}</p>
+                                    <div className="flex w-full md:w-auto justify-between md:justify-end gap-8 text-right">
+                                        <div>
+                                            <p className="text-xs text-muted-foreground uppercase font-semibold">Goals</p>
+                                            <p className="text-foreground font-mono font-bold text-lg">{m.goals}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground uppercase font-semibold">Assist</p>
+                                            <p className="text-foreground font-mono font-bold text-lg">{m.assists}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground uppercase font-semibold">Passing</p>
+                                            <p className={`font-mono font-bold text-lg ${m.passing_accuracy >= 80 ? 'text-green-500' : m.passing_accuracy >= 70 ? 'text-yellow-500' : 'text-muted-foreground'}`}>
+                                                {Number(m.passing_accuracy).toFixed(0)}%
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex w-full md:w-auto justify-between md:justify-end gap-8 text-right">
-                                    <div>
-                                        <p className="text-xs text-muted-foreground uppercase font-semibold">Goals</p>
-                                        <p className="text-foreground font-mono font-bold text-lg">{m.goals}</p>
+                                {/* Feedback Section */}
+                                {m.feedback && m.feedback.trim() && (
+                                    <div className="mt-3 pt-3 border-t border-border">
+                                        <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Self-Evaluation</p>
+                                        <p className="text-sm text-muted-foreground italic">"{m.feedback}"</p>
                                     </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground uppercase font-semibold">Assist</p>
-                                        <p className="text-foreground font-mono font-bold text-lg">{m.assists}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground uppercase font-semibold">Passing</p>
-                                        <p className={`font-mono font-bold text-lg ${m.passing_accuracy >= 80 ? 'text-green-500' : m.passing_accuracy >= 70 ? 'text-yellow-500' : 'text-muted-foreground'}`}>
-                                            {Number(m.passing_accuracy).toFixed(0)}%
-                                        </p>
-                                    </div>
-                                </div>
+                                )}
                             </Card>
                         ))}
                     </div>

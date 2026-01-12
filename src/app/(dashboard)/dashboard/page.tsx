@@ -22,6 +22,7 @@ import {
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { QuickActions } from "@/components/dashboard/QuickActions";
 
 export default function DashboardPage() {
     const [data, setData] = useState<any>(null);
@@ -64,14 +65,22 @@ export default function DashboardPage() {
     const topAssists = [...data.allPlayers].sort((a: any, b: any) => b.assists - a.assists).slice(0, 5);
     const topTacklers = [...data.allPlayers].sort((a: any, b: any) => b.totalTackles - a.totalTackles).slice(0, 5);
 
+    // Dynamic greeting based on time
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Good Morning";
+        if (hour < 18) return "Good Afternoon";
+        return "Good Evening";
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header */}
             <PageHeader
                 icon={TrendingUp}
                 iconColor="blue"
-                title="Team Overview"
-                description="Key performance indicators for the season"
+                title={`${getGreeting()}, Coach 👋`}
+                description="Here's your team's performance overview"
                 actions={
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="w-4 h-4" />
@@ -113,6 +122,9 @@ export default function DashboardPage() {
                     color="pink"
                 />
             </div>
+
+            {/* Quick Actions */}
+            <QuickActions />
 
             {/* Main Charts Area */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -30,12 +30,24 @@ export default function LoginPage() {
         setIsLoading(true);
         setMessage(null);
 
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-            setMessage({ text: error.message, type: 'error' });
+        try {
+            const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                setMessage({ text: error.message, type: 'error' });
+                setIsLoading(false);
+            } else {
+                // Successful login
+                // Refresh the router to prevent stale cache issues
+                router.refresh();
+                router.push("/dashboard");
+
+                // Note: We don't set isLoading(false) here because we want the spinner 
+                // to show until the page actually changes.
+            }
+        } catch (err) {
+            console.error("Login error:", err);
+            setMessage({ text: "An unexpected error occurred", type: 'error' });
             setIsLoading(false);
-        } else {
-            router.push("/dashboard");
         }
     };
 

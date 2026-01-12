@@ -1,6 +1,4 @@
-
 import * as XLSX from 'xlsx';
-import Papa from 'papaparse';
 import { cleanText } from './utils';
 
 const MATCH_MAPPING = {
@@ -22,13 +20,38 @@ const MATCH_MAPPING = {
     'hvad vil du gøre bedre i næste kamp ?': 'Feedback'
 };
 
+// Expanded mapping with variations
 const PERFORMANCE_MAPPING = {
     'navn': 'Player',
+    'name': 'Player',
+
     'øvelse': 'Exercise',
+    'ovelse': 'Exercise',
+    'exercise': 'Exercise',
+
     '1.pr': 'PR1',
+    '1. pr': 'PR1',
+    '1 pr': 'PR1',
+    'pr1': 'PR1',
+
     '2.pr': 'PR2',
+    '2. pr': 'PR2',
+    '2 pr': 'PR2',
+    'pr2': 'PR2',
+
     '3.pr': 'PR3',
-    '4. pr': 'PR4'
+    '3. pr': 'PR3',
+    '3 pr': 'PR3',
+    'pr3': 'PR3',
+
+    '4. pr': 'PR4',
+    '4.pr': 'PR4',
+    '4 pr': 'PR4',
+    'pr4': 'PR4'
+};
+
+const normalizeKey = (key: string) => {
+    return cleanText(key).replace(/[^a-z0-9]/g, ''); // Remove all special chars/spaces for comparison
 };
 
 export const parseFile = async (file: File): Promise<any[]> => {
@@ -52,8 +75,8 @@ export const parseFile = async (file: File): Promise<any[]> => {
                 let headerIndex = -1;
                 let mapping: any = {};
 
-                // Heuristic: choose the one with more matches
-                if (matchHeader.index !== -1 && matchHeader.matchCount >= perfHeader.matchCount) {
+                // Use strict logic - must define clear winner
+                if (matchHeader.index !== -1 && matchHeader.matchCount > perfHeader.matchCount) {
                     type = 'match';
                     headerIndex = matchHeader.index;
                     mapping = MATCH_MAPPING;
@@ -62,8 +85,15 @@ export const parseFile = async (file: File): Promise<any[]> => {
                     headerIndex = perfHeader.index;
                     mapping = PERFORMANCE_MAPPING;
                 } else {
-                    reject(new Error("Could not identify file type (Match or Performance)"));
-                    return;
+                    // Fallback to match if equal? No, better to fail than misclassify
+                    if (matchHeader.index !== -1) {
+                        type = 'match';
+                        headerIndex = matchHeader.index;
+                        mapping = MATCH_MAPPING;
+                    } else {
+                        reject(new Error("Could not identify file type. Please check column headers."));
+                        return;
+                    }
                 }
 
                 // Get raw data with correct header
@@ -74,14 +104,19 @@ export const parseFile = async (file: File): Promise<any[]> => {
                     const keys = Object.keys(row);
 
                     for (const [expectedKey, mappedKey] of Object.entries(mapping)) {
-                        // Find matching key in row
-                        const foundKey = keys.find(k => cleanText(k) === expectedKey);
+                        // Find matching key in row with normalized comparison
+                        const foundKey = keys.find(k => normalizeKey(k) === normalizeKey(expectedKey));
                         if (foundKey) {
                             newRow[mappedKey] = row[foundKey];
                         }
                     }
                     return newRow;
-                }).filter(r => r.Player); // Basic validation (Player name required)
+                }).filter(r => r.Player);
+
+                if (mappedData.length === 0) {
+                    reject(new Error("No valid data rows found after parsing."));
+                    return;
+                }
 
                 resolve(mappedData);
 
@@ -97,16 +132,18 @@ function findBestHeaderRow(rows: string[][], expectedCols: string[]): { index: n
     let bestMatchCount = 0;
     let bestIndex = -1;
 
+    // Normalize expected columns for comparison
+    const normalizedExpected = expectedCols.map(normalizeKey);
+
     rows.slice(0, 20).forEach((row, index) => {
         if (!Array.isArray(row)) return;
-        const cleanedRow = row.map(cell => cleanText(String(cell))); // ensure string
+        const normalizedRow = row.map(cell => normalizeKey(String(cell)));
         let matchCount = 0;
 
-        expectedCols.forEach(expected => {
-            if (cleanedRow.includes(expected)) matchCount++;
+        normalizedExpected.forEach(expected => {
+            if (normalizedRow.includes(expected)) matchCount++;
         });
 
-        // Threshold: Must match at least 2 columns to be considered
         if (matchCount > bestMatchCount && matchCount >= 2) {
             bestMatchCount = matchCount;
             bestIndex = index;

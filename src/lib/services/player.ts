@@ -27,6 +27,7 @@ export const getPlayerStats = async (playerName: string) => {
         ...s,
         date: s.matches?.date,
         opponent: s.matches?.opponent,
+        feedback: s.feedback || '',
         passing_accuracy: s.total_passes > 0 ? (s.successful_passes / s.total_passes) * 100 : 0
     })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 

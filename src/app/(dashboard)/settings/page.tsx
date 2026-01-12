@@ -317,16 +317,7 @@ export default function SettingsPage() {
                                         />
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="avatarUrl">Avatar Image URL</Label>
-                                        <Input
-                                            id="avatarUrl"
-                                            placeholder="https://..."
-                                            value={avatarUrl}
-                                            onChange={(e) => setAvatarUrl(e.target.value)}
-                                            className="h-11"
-                                        />
-                                    </div>
+
                                 </div>
                             </div>
 

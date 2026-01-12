@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Download, Bot, Sparkles, Filter, FileText, User, Calendar, Users, Zap, ArrowRight, BrainCircuit, Pencil, Save, X } from "lucide-react";
+import { Download, Bot, Sparkles, FileText, BrainCircuit, Pencil, Save, Users, Calendar, User, History, Trash2, Eye, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getMetadata, MetadataOptions } from "@/lib/services/metadata";
+import { getSavedReports, saveReport, deleteReport, SavedReport } from "@/lib/services/reports";
 import { ComboSelect } from "@/components/ui/combo-select";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
 
 export default function AICoachPage() {
     const [metadata, setMetadata] = useState<MetadataOptions>({ matches: [], players: [] });
@@ -26,16 +28,47 @@ export default function AICoachPage() {
     const [generating, setGenerating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
+    // History State
+    const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
+
     useEffect(() => {
-        getMetadata().then(data => {
-            setMetadata(data);
+        const loadJava = async () => {
+            const [meta, reports] = await Promise.all([
+                getMetadata(),
+                getSavedReports()
+            ]);
+            setMetadata(meta);
+            setSavedReports(reports);
             setLoadingData(false);
-        });
+        };
+        loadJava();
     }, []);
+
+    // Get human-readable labels
+    const getAnalysisTypeLabel = (type: string) => {
+        const labels: Record<string, string> = {
+            'general': '📊 General Overview',
+            'tactical': '🎯 Tactical Deep Dive',
+            'individual': '👤 Individual Development',
+            'physical_mental': '💪 Physical & Mental',
+            'feedback': '💭 Feedback & Psychology'
+        };
+        return labels[type] || type;
+    };
+
+    const getScopeLabel = () => {
+        if (scope === 'Team') return 'Full Squad';
+        if (scope === 'Match') {
+            const match = metadata.matches.find(m => m.id === selectedId);
+            return match?.label || selectedId;
+        }
+        return selectedId;
+    };
 
     const handleGenerate = async () => {
         setGenerating(true);
         setReport(null);
+
         try {
             const res = await fetch('/api/ai-report', {
                 method: 'POST',
@@ -48,13 +81,34 @@ export default function AICoachPage() {
             });
             const data = await res.json();
             if (data.error) throw new Error(data.error);
+
             setReport(data.report);
+
+            // Save to database
+            const saved = await saveReport(scope, getScopeLabel(), analysisType, data.report);
+            if (saved) {
+                setSavedReports(prev => [saved, ...prev]);
+            }
+
         } catch (err: any) {
             console.error("AI Generation Error:", err);
             setReport(`Error generating report: ${err.message || "Unknown error occurred"}. Please try again.`);
         } finally {
             setGenerating(false);
         }
+    };
+
+    const handleDeleteReport = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        const success = await deleteReport(id);
+        if (success) {
+            setSavedReports(prev => prev.filter(r => r.id !== id));
+        }
+    };
+
+    const handleLoadReport = (saved: SavedReport) => {
+        setReport(saved.report_content);
+        setScope(saved.scope);
     };
 
     const downloadReport = async () => {
@@ -272,10 +326,59 @@ export default function AICoachPage() {
             </FilterPanel>
 
             {/* Report Output */}
-            <div className="flex flex-col gap-6 animate-in fade-in-50 duration-500">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-in fade-in-50 duration-500">
+                {/* History Sidebar */}
+                <Card className="lg:col-span-1 glass-card p-4 space-y-4 h-[600px] flex flex-col">
+                    <div className="flex items-center gap-2 text-sm font-bold text-foreground pb-2 border-b border-border">
+                        <History size={16} className="text-primary" />
+                        Analysis History
+                        <Badge variant="secondary" className="ml-auto text-xs">{savedReports.length}</Badge>
+                    </div>
 
-                {/* Right Panel: Output */}
-                <Card className="flex-1 flex flex-col glass-card overflow-hidden relative min-h-[500px] h-auto md:h-full">
+                    <ScrollArea className="flex-1 -mx-2 px-2">
+                        <div className="space-y-2">
+                            {savedReports.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <Clock size={24} className="mx-auto mb-2 opacity-50" />
+                                    <p className="text-xs">No saved reports yet.</p>
+                                </div>
+                            ) : (
+                                savedReports.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        onClick={() => handleLoadReport(item)}
+                                        className="group relative flex flex-col gap-1 p-3 rounded-xl bg-muted/30 hover:bg-muted/60 border border-transparent hover:border-primary/20 transition-all cursor-pointer"
+                                    >
+                                        <div className="flex justify-between items-start gap-2">
+                                            <span className="text-xs font-semibold text-foreground truncate flex-1">
+                                                {item.target_label}
+                                            </span>
+                                            <button
+                                                onClick={(e) => handleDeleteReport(e, item.id)}
+                                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 text-destructive rounded transition-all"
+                                                title="Delete report"
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                            <Badge variant="outline" className="text-[9px] h-4 px-1 py-0 border-border/50">
+                                                {item.scope}
+                                            </Badge>
+                                            <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                                        </div>
+                                        <span className="text-[10px] text-primary/70 truncate">
+                                            {getAnalysisTypeLabel(item.analysis_type)}
+                                        </span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </ScrollArea>
+                </Card>
+
+                {/* Main Report Panel */}
+                <Card className="lg:col-span-3 flex flex-col glass-card overflow-hidden relative min-h-[600px] h-auto">
                     <div className="p-6 border-b border-border bg-muted/30 flex justify-between items-center">
                         <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
                             <FileText className="text-purple-500" />

@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-
 import { useEffect, useState, useMemo } from "react";
 import { getDashboardStats } from "@/lib/services/dashboard";
 import {
@@ -27,11 +26,37 @@ import { FilterPanel, FilterRow, FilterSection } from "@/components/ui/filter-pa
 import { PageHeader } from "@/components/ui/page-header";
 import { CountBadge } from "@/components/ui/stats-display";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
-import { Search, Users, Dumbbell, Download, Ban, SlidersHorizontal } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StatCard } from "@/components/ui/stat-card";
+import WordCloud from "@/components/dashboard/WordCloud";
+import {
+    Search,
+    Users,
+    Dumbbell,
+    Download,
+    Ban,
+    SlidersHorizontal,
+    MessageSquare,
+    BarChart3,
+    TrendingUp,
+    Target,
+    Loader2,
+    Brain,
+    Sparkles
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+    getAllFeedback,
+    getFeedbackStats,
+    getOpponentsWithFeedback,
+    getPlayersWithFeedback,
+    FeedbackEntry,
+    FeedbackStats
+} from "@/lib/services/feedback";
 
 export default function PlayerStatsPage() {
     const [rawMatchStats, setRawMatchStats] = useState<any[]>([]);
@@ -47,6 +72,8 @@ export default function PlayerStatsPage() {
     const [ageRange, setAgeRange] = useState<[number, number]>([15, 40]);
     const [includeUnknownAge, setIncludeUnknownAge] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
+    const [showGymFilters, setShowGymFilters] = useState(false);
+    const [showFeedbackFilters, setShowFeedbackFilters] = useState(false);
     const [sortBy, setSortBy] = useState("rating");
 
     // Profile Map for Age
@@ -61,6 +88,22 @@ export default function PlayerStatsPage() {
     const [page, setPage] = useState(1);
     const ITEMS_PER_PAGE = 50;
 
+    // Feedback Analysis State
+    const [feedback, setFeedback] = useState<FeedbackEntry[]>([]);
+    const [feedbackStats, setFeedbackStats] = useState<FeedbackStats | null>(null);
+    const [feedbackPlayers, setFeedbackPlayers] = useState<string[]>([]);
+    const [feedbackOpponents, setFeedbackOpponents] = useState<string[]>([]);
+    const [selectedFeedbackPlayer, setSelectedFeedbackPlayer] = useState<string>("all");
+    const [selectedFeedbackOpponent, setSelectedFeedbackOpponent] = useState<string>("all");
+    const [feedbackSearch, setFeedbackSearch] = useState<string>("");
+    const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+    const [analyzingAI, setAnalyzingAI] = useState(false);
+
+    // Gym Filters
+    const [gymSearch, setGymSearch] = useState<string>("");
+    const [gymPlayerFilter, setGymPlayerFilter] = useState<string>("all");
+    const [gymExerciseFilter, setGymExerciseFilter] = useState<string>("all");
+
     useEffect(() => {
         const fetchData = async () => {
             const { getRawStats } = await import("@/lib/services/dashboard");
@@ -74,6 +117,23 @@ export default function PlayerStatsPage() {
             setRawMatchStats(statsData.matchStats);
             setRawPerfStats(statsData.perfStats);
             setProfiles(profilesData);
+
+            // Load feedback data
+            try {
+                const [feedbackData, statsData2, opponentsData, playersData] = await Promise.all([
+                    getAllFeedback(),
+                    getFeedbackStats(),
+                    getOpponentsWithFeedback(),
+                    getPlayersWithFeedback()
+                ]);
+                setFeedback(feedbackData);
+                setFeedbackStats(statsData2);
+                setFeedbackOpponents(opponentsData);
+                setFeedbackPlayers(playersData);
+            } catch (err) {
+                console.error("Failed to load feedback:", err);
+            }
+
             setLoading(false);
         };
 
@@ -116,7 +176,8 @@ export default function PlayerStatsPage() {
                     yellowCards: 0,
                     redCards: 0,
                     perfCount: 0,
-                    gymData: []
+                    gymData: [],
+                    feedbackList: []
                 });
             }
             const p = playerMap.get(cleanName);
@@ -133,6 +194,7 @@ export default function PlayerStatsPage() {
             p.minutes += (s.minutes_played || 0);
             p.yellowCards += (s.yellow_cards || 0);
             p.redCards += (s.red_cards || 0);
+            if (s.feedback) p.feedbackList.push(s.feedback);
         });
 
         const gymMap = new Map();
@@ -224,6 +286,134 @@ export default function PlayerStatsPage() {
 
     const opponentOptions = uniqueOpponents.map(o => ({ label: o, value: o }));
 
+    // Filtered feedback
+    const filteredFeedback = useMemo(() => {
+        let result = [...feedback];
+        if (selectedFeedbackPlayer !== "all") {
+            result = result.filter(f => f.player_name === selectedFeedbackPlayer);
+        }
+        if (selectedFeedbackOpponent !== "all") {
+            result = result.filter(f => f.opponent === selectedFeedbackOpponent);
+        }
+        if (feedbackSearch) {
+            const searchLower = feedbackSearch.toLowerCase();
+            result = result.filter(f =>
+                f.feedback?.toLowerCase().includes(searchLower) ||
+                f.player_name?.toLowerCase().includes(searchLower)
+            );
+        }
+        return result;
+    }, [feedback, selectedFeedbackPlayer, selectedFeedbackOpponent, feedbackSearch]);
+
+    // Gym player and exercise lists
+    const gymPlayers = useMemo(() => {
+        return Array.from(new Set(rawPerfStats.map(p => p.player_name))).filter(Boolean).sort();
+    }, [rawPerfStats]);
+
+    const gymExercises = useMemo(() => {
+        return Array.from(new Set(rawPerfStats.map(p => p.exercise))).filter(Boolean).sort();
+    }, [rawPerfStats]);
+
+    // Filtered gym data
+    const filteredGymData = useMemo(() => {
+        let result = [...rawPerfStats];
+        if (gymPlayerFilter !== "all") {
+            result = result.filter(p => p.player_name === gymPlayerFilter);
+        }
+        if (gymExerciseFilter !== "all") {
+            result = result.filter(p => p.exercise === gymExerciseFilter);
+        }
+        if (gymSearch) {
+            const searchLower = gymSearch.toLowerCase();
+            result = result.filter(p =>
+                p.player_name?.toLowerCase().includes(searchLower) ||
+                p.exercise?.toLowerCase().includes(searchLower)
+            );
+        }
+        return result;
+    }, [rawPerfStats, gymPlayerFilter, gymExerciseFilter, gymSearch]);
+
+    // Combined feedback text for wordcloud
+    const feedbackText = useMemo(() => {
+        return filteredFeedback.map(f => f.feedback).join(' ');
+    }, [filteredFeedback]);
+
+    // Theme analysis
+    const themeAnalysis = useMemo(() => {
+        const themes = {
+            "Teknisk": ['pasninger', 'afleveringer', 'første berøring', 'boldkontrol', 'teknik', 'afslutninger', 'skud'],
+            "Fysisk": ['pres', 'løb', 'tempo', 'hurtigere', 'aggressiv', 'erobringer', 'dueller'],
+            "Taktisk": ['positionering', 'placering', 'rum', 'dybde', 'position', 'bevægelse'],
+            "Mental": ['fokus', 'kommunikation', 'lyd', 'koncentration', 'snakke', 'mere', 'bedre']
+        };
+
+        const text = feedbackText.toLowerCase();
+        const counts: Record<string, number> = {};
+
+        for (const [theme, keywords] of Object.entries(themes)) {
+            counts[theme] = keywords.reduce((sum, kw) => sum + (text.split(kw).length - 1), 0);
+        }
+
+        return counts;
+    }, [feedbackText]);
+
+    const handleAIAnalysis = async () => {
+        setAnalyzingAI(true);
+        setAiAnalysis(null);
+
+        try {
+            const feedbackSample = filteredFeedback.slice(0, 30).map(f =>
+                `${f.player_name}: "${f.feedback}"`
+            ).join('\n');
+
+            const response = await fetch('/api/ai-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    scope: 'Team',
+                    targetLabel: 'Feedback Analysis',
+                    analysisType: 'feedback',
+                    customPrompt: `
+Du er en erfaren og empatisk fodboldtræner, der analyserer spillernes selvevalueringer.
+Brug en varm, støttende og anerkendende tone.
+
+**SPILLERSELVEVALUERINGER:**
+${feedbackSample}
+
+**ANALYSER OG GIV:**
+
+## 🌟 Styrker og Fremskridt
+Identificer 3-5 positive temaer, som spillerne selv fremhæver.
+
+## 💡 Spillernes Egen Oplevelse
+Opsummer hvad selvevalueringerne fortæller om spillernes mentale tilstand.
+
+## 🌱 Udviklingsmuligheder
+Beskriv de områder spillerne selv ønsker at forbedre.
+
+## 🤝 Støttende Anbefalinger
+5 konkrete handlinger træneren kan tage for at hjælpe spillerne.
+
+## 🎯 Fokus til Næste Kamp
+3 fokuspunkter til næste kamp baseret på spillernes input.
+
+Vær konkret og handlingsorienteret med en positiv tone.
+`
+                })
+            });
+
+            if (!response.ok) throw new Error('Failed to get AI analysis');
+
+            const data = await response.json();
+            setAiAnalysis(data.report);
+        } catch (err) {
+            console.error("AI Analysis failed:", err);
+            setAiAnalysis("Kunne ikke generere AI analyse. Prøv igen senere.");
+        } finally {
+            setAnalyzingAI(false);
+        }
+    };
+
     // Export Functionality
     const handleExport = () => {
         const headers = ["Player", "Age", "Matches", "Minutes", "Goals", "Assists", "Passing %", "Tackles", "Yellow Cards", "Red Cards", "Gym Sessions", "Best PR"];
@@ -263,7 +453,7 @@ export default function PlayerStatsPage() {
                 icon={Users}
                 iconColor="blue"
                 title="Player Analysis"
-                description="Detailed performance metrics across the squad"
+                description="Detailed performance metrics, feedback analysis, and team insights"
                 badge={<CountBadge count={filteredPlayers.length} label="Players Found" />}
                 actions={
                     <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
@@ -273,265 +463,890 @@ export default function PlayerStatsPage() {
                 }
             />
 
-            {/* Filter Panel */}
-            <FilterPanel>
-                <div className="flex flex-col gap-4">
-                    <div className="flex flex-col md:flex-row gap-4 items-end">
-                        {/* Search */}
-                        <div className="flex-1 relative w-full">
-                            <Label className="text-xs text-muted-foreground mb-2 block">Search Player</Label>
-                            <ComboSelect
-                                options={playerOptions}
-                                value={search}
-                                onValueChange={setSearch}
-                                placeholder="Select player"
-                                searchPlaceholder="Type to search..."
-                            />
-                            {search && (
-                                <button onClick={() => setSearch('')} className="text-xs text-destructive mt-1 hover:underline text-right w-full block">Clear</button>
-                            )}
-                        </div>
+            {/* Main Tabs */}
+            <Tabs defaultValue="players" className="w-full">
+                <TabsList className="bg-muted p-1 rounded-xl w-full md:w-auto grid grid-cols-4 md:inline-flex">
+                    <TabsTrigger value="players" className="rounded-lg gap-2">
+                        <TrendingUp size={16} />
+                        Performance
+                    </TabsTrigger>
+                    <TabsTrigger value="gym" className="rounded-lg gap-2">
+                        <Dumbbell size={16} />
+                        Gym
+                    </TabsTrigger>
+                    <TabsTrigger value="feedback" className="rounded-lg gap-2">
+                        <MessageSquare size={16} />
+                        Feedback
+                    </TabsTrigger>
+                    <TabsTrigger value="insights" className="rounded-lg gap-2">
+                        <BarChart3 size={16} />
+                        Insights
+                    </TabsTrigger>
+                </TabsList>
 
-                        {/* Sort */}
-                        <div className="w-full md:w-48">
-                            <Label className="text-xs text-muted-foreground mb-2 block">Sort By</Label>
-                            <Select value={sortBy} onValueChange={setSortBy}>
-                                <SelectTrigger className="h-10">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="rating">🔥 Performance</SelectItem>
-                                    <SelectItem value="games">📅 Matches</SelectItem>
-                                    <SelectItem value="goals">⚽ Goals</SelectItem>
-                                    <SelectItem value="assists">👟 Assists</SelectItem>
-                                    <SelectItem value="passing">🎯 Passing %</SelectItem>
-                                    <SelectItem value="minutes">⏱ Minutes</SelectItem>
-                                    <SelectItem value="gym">🏋️ Gym (Max PR)</SelectItem>
-                                    <SelectItem value="age">🎂 Age</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <Button
-                            variant={showFilters ? "secondary" : "outline"}
-                            className="gap-2 h-10"
-                            onClick={() => setShowFilters(!showFilters)}
-                        >
-                            <SlidersHorizontal size={16} />
-                            Filters
-                            {(minGames > 0 || minGoals > 0 || minAssists > 0 || opponentFilter || startDate || endDate) && (
-                                <Badge variant="secondary" className="ml-1 px-1 h-5 text-[10px]">!</Badge>
-                            )}
-                        </Button>
+                {/* Performance Tab */}
+                <TabsContent value="players" className="mt-6 space-y-6">
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <StatCard
+                            title="Total Players"
+                            value={aggregatedPlayers.length}
+                            icon={Users}
+                            color="blue"
+                        />
+                        <StatCard
+                            title="Total Matches"
+                            value={rawMatchStats.length}
+                            icon={Target}
+                            color="green"
+                        />
+                        <StatCard
+                            title="Total Goals"
+                            value={aggregatedPlayers.reduce((sum, p) => sum + p.goals, 0)}
+                            icon={Sparkles}
+                            color="purple"
+                        />
+                        <StatCard
+                            title="Avg. Passing %"
+                            value={`${(aggregatedPlayers.reduce((sum, p) => sum + p.avgPassing, 0) / Math.max(aggregatedPlayers.length, 1)).toFixed(1)}%`}
+                            icon={TrendingUp}
+                            color="yellow"
+                        />
                     </div>
 
-                    {showFilters && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 border-t animate-in slide-in-from-top-2 fade-in duration-200">
-                            {/* Opposition */}
-                            <div>
-                                <Label className="text-xs text-muted-foreground mb-2 block">Opposition</Label>
-                                <ComboSelect
-                                    options={[{ label: "All Opponents", value: "all" }, ...opponentOptions]}
-                                    value={opponentFilter || "all"}
-                                    onValueChange={(val) => setOpponentFilter(val === "all" ? "" : val)}
-                                    placeholder="Select opponent"
-                                    searchPlaceholder="Type to search..."
-                                />
-                                {opponentFilter && (
-                                    <button onClick={() => setOpponentFilter('')} className="text-xs text-destructive mt-1 hover:underline">Clear</button>
-                                )}
+                    {/* Filter Panel */}
+                    <FilterPanel>
+                        <div className="flex flex-col gap-4">
+                            <div className="flex flex-col md:flex-row gap-4 items-end">
+                                {/* Search */}
+                                <div className="flex-1 relative w-full">
+                                    <Label className="text-xs text-muted-foreground mb-2 block">Search Player</Label>
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                                        <Input
+                                            placeholder="Filter by name..."
+                                            value={search}
+                                            onChange={(e) => setSearch(e.target.value)}
+                                            className="pl-9 h-10"
+                                        />
+                                    </div>
+                                    {search && (
+                                        <button onClick={() => setSearch('')} className="text-xs text-destructive mt-1 hover:underline text-right w-full block">Clear</button>
+                                    )}
+                                </div>
+
+                                {/* Sort */}
+                                <div className="w-full md:w-48">
+                                    <Label className="text-xs text-muted-foreground mb-2 block">Sort By</Label>
+                                    <Select value={sortBy} onValueChange={setSortBy}>
+                                        <SelectTrigger className="h-10">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="rating">🔥 Performance</SelectItem>
+                                            <SelectItem value="games">📅 Matches</SelectItem>
+                                            <SelectItem value="goals">⚽ Goals</SelectItem>
+                                            <SelectItem value="assists">👟 Assists</SelectItem>
+                                            <SelectItem value="passing">🎯 Passing %</SelectItem>
+                                            <SelectItem value="minutes">⏱ Minutes</SelectItem>
+                                            <SelectItem value="age">🎂 Age</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <Button
+                                    variant={showFilters ? "secondary" : "outline"}
+                                    className="gap-2 h-10"
+                                    onClick={() => setShowFilters(!showFilters)}
+                                >
+                                    <SlidersHorizontal size={16} />
+                                    Filters
+                                    {(minGames > 0 || minGoals > 0 || minAssists > 0 || opponentFilter || startDate || endDate) && (
+                                        <Badge variant="secondary" className="ml-1 px-1 h-5 text-[10px]">!</Badge>
+                                    )}
+                                </Button>
                             </div>
 
-                            {/* Date Range */}
-                            <div className="col-span-1 md:col-span-2 flex gap-4">
-                                <div className="flex-1">
-                                    <Label className="text-xs text-muted-foreground mb-2 block">Start Date</Label>
-                                    <Input
-                                        type="date"
-                                        value={startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
-                                        className="h-10"
-                                    />
-                                </div>
-                                <div className="flex-1">
-                                    <Label className="text-xs text-muted-foreground mb-2 block">End Date</Label>
-                                    <Input
-                                        type="date"
-                                        value={endDate}
-                                        onChange={(e) => setEndDate(e.target.value)}
-                                        className="h-10"
-                                    />
-                                </div>
-                            </div>
+                            {showFilters && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 border-t animate-in slide-in-from-top-2 fade-in duration-200">
+                                    {/* Opposition */}
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground mb-2 block">Opposition</Label>
+                                        <ComboSelect
+                                            options={[{ label: "All Opponents", value: "all" }, ...opponentOptions]}
+                                            value={opponentFilter || "all"}
+                                            onValueChange={(val) => setOpponentFilter(val === "all" ? "" : val)}
+                                            placeholder="Select opponent"
+                                            searchPlaceholder="Type to search..."
+                                        />
+                                        {opponentFilter && (
+                                            <button onClick={() => setOpponentFilter('')} className="text-xs text-destructive mt-1 hover:underline">Clear</button>
+                                        )}
+                                    </div>
 
-                            {/* Sliders */}
-                            <div className="space-y-3">
-                                <div className="flex justify-between">
-                                    <Label className="text-muted-foreground text-xs uppercase font-bold">Age: {ageRange[0]} - {ageRange[1]}</Label>
-                                    <div className="flex items-center gap-2">
-                                        <label className="text-[10px] flex items-center gap-1 cursor-pointer select-none">
-                                            <input
-                                                type="checkbox"
-                                                checked={includeUnknownAge}
-                                                onChange={(e) => setIncludeUnknownAge(e.target.checked)}
-                                                className="accent-primary rounded-sm w-3 h-3"
+                                    {/* Date Range */}
+                                    <div className="col-span-1 md:col-span-2 flex gap-4">
+                                        <div className="flex-1">
+                                            <Label className="text-xs text-muted-foreground mb-2 block">Start Date</Label>
+                                            <Input
+                                                type="date"
+                                                value={startDate}
+                                                onChange={(e) => setStartDate(e.target.value)}
+                                                className="h-10"
                                             />
-                                            Inc. Unknown
-                                        </label>
+                                        </div>
+                                        <div className="flex-1">
+                                            <Label className="text-xs text-muted-foreground mb-2 block">End Date</Label>
+                                            <Input
+                                                type="date"
+                                                value={endDate}
+                                                onChange={(e) => setEndDate(e.target.value)}
+                                                className="h-10"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Sliders */}
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between">
+                                            <Label className="text-muted-foreground text-xs uppercase font-bold">Age: {ageRange[0]} - {ageRange[1]}</Label>
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-[10px] flex items-center gap-1 cursor-pointer select-none">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={includeUnknownAge}
+                                                        onChange={(e) => setIncludeUnknownAge(e.target.checked)}
+                                                        className="accent-primary rounded-sm w-3 h-3"
+                                                    />
+                                                    Inc. Unknown
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <Slider
+                                            value={ageRange}
+                                            max={40}
+                                            min={15}
+                                            step={1}
+                                            onValueChange={(val: any) => setAgeRange(val)}
+                                            className="py-2"
+                                        />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between">
+                                            <Label className="text-muted-foreground text-xs uppercase font-bold">Min Matches</Label>
+                                            <span className="text-primary text-xs font-mono">{minGames}</span>
+                                        </div>
+                                        <Slider value={[minGames]} max={20} step={1} onValueChange={(val) => setMinGames(val[0])} className="py-2" />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between">
+                                            <Label className="text-muted-foreground text-xs uppercase font-bold">Min Goals</Label>
+                                            <span className="text-green-500 text-xs font-mono">{minGoals}</span>
+                                        </div>
+                                        <Slider value={[minGoals]} max={10} step={1} onValueChange={(val) => setMinGoals(val[0])} className="py-2" />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between">
+                                            <Label className="text-muted-foreground text-xs uppercase font-bold">Min Assists</Label>
+                                            <span className="text-purple-500 text-xs font-mono">{minAssists}</span>
+                                        </div>
+                                        <Slider value={[minAssists]} max={10} step={1} onValueChange={(val) => setMinAssists(val[0])} className="py-2" />
                                     </div>
                                 </div>
-                                <Slider
-                                    value={ageRange}
-                                    max={40}
-                                    min={15}
-                                    step={1}
-                                    onValueChange={(val: any) => setAgeRange(val)}
-                                    className="py-2"
-                                />
-                            </div>
+                            )}
+                        </div>
+                    </FilterPanel>
 
-                            <div className="space-y-3">
-                                <div className="flex justify-between">
-                                    <Label className="text-muted-foreground text-xs uppercase font-bold">Min Matches</Label>
-                                    <span className="text-primary text-xs font-mono">{minGames}</span>
-                                </div>
-                                <Slider value={[minGames]} max={20} step={1} onValueChange={(val) => setMinGames(val[0])} className="py-2" />
-                            </div>
-                            <div className="space-y-3">
-                                <div className="flex justify-between">
-                                    <Label className="text-muted-foreground text-xs uppercase font-bold">Min Goals</Label>
-                                    <span className="text-green-500 text-xs font-mono">{minGoals}</span>
-                                </div>
-                                <Slider value={[minGoals]} max={10} step={1} onValueChange={(val) => setMinGoals(val[0])} className="py-2" />
-                            </div>
-                            <div className="space-y-3">
-                                <div className="flex justify-between">
-                                    <Label className="text-muted-foreground text-xs uppercase font-bold">Min Assists</Label>
-                                    <span className="text-purple-500 text-xs font-mono">{minAssists}</span>
-                                </div>
-                                <Slider value={[minAssists]} max={10} step={1} onValueChange={(val) => setMinAssists(val[0])} className="py-2" />
-                            </div>
+                    {/* Results Table */}
+                    <div className="overflow-x-auto">
+                        <DataTable>
+                            <DataTableHeader>
+                                <DataTableHead>Player</DataTableHead>
+                                <DataTableHead>Age</DataTableHead>
+                                <DataTableHead className="text-right">Matches</DataTableHead>
+                                <DataTableHead className="text-right">Mins</DataTableHead>
+                                <DataTableHead className="text-right">Goals</DataTableHead>
+                                <DataTableHead className="text-right">Assists</DataTableHead>
+                                <DataTableHead className="text-right">Passing</DataTableHead>
+                                <DataTableHead className="text-right">Tackles</DataTableHead>
+                                <DataTableHead className="text-right">Cards</DataTableHead>
+                            </DataTableHeader>
+                            <DataTableBody>
+                                {paginatedPlayers.length > 0 ? (
+                                    paginatedPlayers.map((player) => (
+                                        <DataTableRow
+                                            key={player.name}
+                                            onClick={() => router.push(`/players/${player.name}`)}
+                                        >
+                                            <DataTableCell className="font-medium">
+                                                <div className="flex flex-col">
+                                                    <span className="text-base group-hover:text-primary transition-colors">{player.name}</span>
+                                                </div>
+                                            </DataTableCell>
+                                            <DataTableCell>
+                                                {player.age ? (
+                                                    <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/30 text-xs font-mono">
+                                                        {player.age} yo
+                                                    </Badge>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground/30 flex items-center gap-1" title="No DOB found"><Ban size={10} /> -</span>
+                                                )}
+                                            </DataTableCell>
+                                            <DataTableCell className="text-right text-muted-foreground font-mono">{player.games}</DataTableCell>
+                                            <DataTableCell className="text-right text-muted-foreground font-mono">
+                                                {player.minutes}&apos;
+                                            </DataTableCell>
+                                            <DataTableCell className="text-right">
+                                                {player.goals > 0 && (
+                                                    <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30 hover:bg-green-500/20">
+                                                        {player.goals} ⚽
+                                                    </Badge>
+                                                )}
+                                                {player.goals === 0 && <span className="text-muted-foreground/50">-</span>}
+                                            </DataTableCell>
+                                            <DataTableCell className="text-right">
+                                                {player.assists > 0 && (
+                                                    <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/30 hover:bg-purple-500/20">
+                                                        {player.assists} 👟
+                                                    </Badge>
+                                                )}
+                                                {player.assists === 0 && <span className="text-muted-foreground/50">-</span>}
+                                            </DataTableCell>
+                                            <DataTableCell className="text-right">
+                                                <span className={`${player.avgPassing >= 80 ? 'text-green-500' : player.avgPassing >= 70 ? 'text-yellow-500' : 'text-muted-foreground'}`}>
+                                                    {player.avgPassing.toFixed(1)}%
+                                                </span>
+                                            </DataTableCell>
+                                            <DataTableCell className="text-right text-muted-foreground">{player.totalTackles}</DataTableCell>
+                                            <DataTableCell className="text-right">
+                                                <div className="flex justify-end gap-1">
+                                                    {player.yellowCards > 0 && <span className="w-3 h-4 bg-yellow-500 rounded-sm inline-block" title={`${player.yellowCards} Yellow`} />}
+                                                    {player.redCards > 0 && <span className="w-3 h-4 bg-red-500 rounded-sm inline-block" title={`${player.redCards} Red`} />}
+                                                    {player.yellowCards === 0 && player.redCards === 0 && <span className="text-muted-foreground/50">-</span>}
+                                                </div>
+                                            </DataTableCell>
+                                        </DataTableRow>
+                                    ))
+                                ) : (
+                                    <DataTableEmpty colSpan={9} message="No players match your filters." />
+                                )}
+                            </DataTableBody>
+                        </DataTable>
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="flex justify-center items-center gap-2 mt-4">
+                            <Button
+                                variant="outline"
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                            >
+                                Previous
+                            </Button>
+                            <span className="text-muted-foreground text-sm">
+                                Page {page} of {totalPages}
+                            </span>
+                            <Button
+                                variant="outline"
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                            >
+                                Next
+                            </Button>
                         </div>
                     )}
-                </div>
-            </FilterPanel>
+                </TabsContent>
 
-            {/* Results Table */}
-            <div className="overflow-x-auto">
-                <DataTable>
-                    <DataTableHeader>
-                        <DataTableHead>Player</DataTableHead>
-                        <DataTableHead>Age</DataTableHead>
-                        <DataTableHead className="text-right">Matches</DataTableHead>
-                        <DataTableHead className="text-right">Mins</DataTableHead>
-                        <DataTableHead className="text-right">Goals</DataTableHead>
-                        <DataTableHead className="text-right">Assists</DataTableHead>
-                        <DataTableHead className="text-right">Passing</DataTableHead>
-                        <DataTableHead className="text-right">Tackles</DataTableHead>
-                        <DataTableHead className="text-right">Cards</DataTableHead>
-                        <DataTableHead className="text-right">Gym</DataTableHead>
-                    </DataTableHeader>
-                    <DataTableBody>
-                        {paginatedPlayers.length > 0 ? (
-                            paginatedPlayers.map((player) => (
-                                <DataTableRow
-                                    key={player.name}
-                                    onClick={() => router.push(`/players/${player.name}`)}
+                {/* Gym Tab */}
+                <TabsContent value="gym" className="mt-6 space-y-6">
+                    {/* Stats Cards for Gym */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <StatCard
+                            title="Gym Sessions"
+                            value={rawPerfStats.length}
+                            icon={Dumbbell}
+                            color="yellow"
+                        />
+                        <StatCard
+                            title="Active Players"
+                            value={new Set(rawPerfStats.map(p => p.player_name)).size}
+                            icon={Users}
+                            color="blue"
+                        />
+                        <StatCard
+                            title="Unique Exercises"
+                            value={new Set(rawPerfStats.map(p => p.exercise)).size}
+                            icon={Target}
+                            color="green"
+                        />
+                        <StatCard
+                            title="Best PR Overall"
+                            value={`${Math.max(...rawPerfStats.flatMap(p => [p.pr_1 || 0, p.pr_2 || 0, p.pr_3 || 0, p.pr_4 || 0]))} kg`}
+                            icon={TrendingUp}
+                            color="purple"
+                        />
+                    </div>
+
+                    {/* Filter Panel - Similar to Performance tab */}
+                    <FilterPanel>
+                        <div className="flex flex-col gap-4">
+                            <div className="flex flex-col md:flex-row gap-4 items-end">
+                                {/* Search */}
+                                <div className="flex-1 relative w-full">
+                                    <Label className="text-xs text-muted-foreground mb-2 block">Search</Label>
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                                        <Input
+                                            placeholder="Filter by player or exercise..."
+                                            value={gymSearch}
+                                            onChange={(e) => setGymSearch(e.target.value)}
+                                            className="pl-9 h-10"
+                                        />
+                                    </div>
+                                    {gymSearch && (
+                                        <button onClick={() => setGymSearch('')} className="text-xs text-destructive mt-1 hover:underline text-right w-full block">Clear</button>
+                                    )}
+                                </div>
+
+                                <Button
+                                    variant={showGymFilters ? "secondary" : "outline"}
+                                    className="gap-2 h-10"
+                                    onClick={() => setShowGymFilters(!showGymFilters)}
                                 >
-                                    <DataTableCell className="font-medium">
-                                        <div className="flex flex-col">
-                                            <span className="text-base group-hover:text-primary transition-colors">{player.name}</span>
-                                        </div>
-                                    </DataTableCell>
-                                    <DataTableCell>
-                                        {player.age ? (
-                                            <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/30 text-xs font-mono">
-                                                {player.age} yo
-                                            </Badge>
+                                    <SlidersHorizontal size={16} />
+                                    Filters
+                                    {(gymPlayerFilter !== "all" || gymExerciseFilter !== "all") && (
+                                        <Badge variant="secondary" className="ml-1 px-1 h-5 text-[10px]">!</Badge>
+                                    )}
+                                </Button>
+                            </div>
+
+                            {showGymFilters && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t animate-in slide-in-from-top-2 fade-in duration-200">
+                                    {/* Player Filter */}
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground mb-2 block">Player</Label>
+                                        <ComboSelect
+                                            options={[{ label: "All Players", value: "all" }, ...gymPlayers.map(p => ({ label: p, value: p }))]}
+                                            value={gymPlayerFilter}
+                                            onValueChange={setGymPlayerFilter}
+                                            placeholder="Select player"
+                                            searchPlaceholder="Type to search..."
+                                        />
+                                    </div>
+
+                                    {/* Exercise Filter */}
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground mb-2 block">Exercise</Label>
+                                        <ComboSelect
+                                            options={[{ label: "All Exercises", value: "all" }, ...gymExercises.map(e => ({ label: e, value: e }))]}
+                                            value={gymExerciseFilter}
+                                            onValueChange={setGymExerciseFilter}
+                                            placeholder="Select exercise"
+                                            searchPlaceholder="Type to search..."
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </FilterPanel>
+
+                    {/* Gym Data Table */}
+                    <Card className="glass-card p-6">
+                        <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                            <Dumbbell className="text-yellow-500 w-5 h-5" />
+                            Gym Performance Data
+                        </h3>
+                        <div className="overflow-x-auto">
+                            <DataTable>
+                                <DataTableHeader>
+                                    <DataTableHead>Player</DataTableHead>
+                                    <DataTableHead>Exercise</DataTableHead>
+                                    <DataTableHead className="text-right">PR 1</DataTableHead>
+                                    <DataTableHead className="text-right">PR 2</DataTableHead>
+                                    <DataTableHead className="text-right">PR 3</DataTableHead>
+                                    <DataTableHead className="text-right">PR 4</DataTableHead>
+                                    <DataTableHead className="text-right">Best</DataTableHead>
+                                </DataTableHeader>
+                                <DataTableBody>
+                                    {filteredGymData.length > 0 ? (
+                                        filteredGymData.slice(0, 50).map((row, idx) => {
+                                            const best = Math.max(row.pr_1 || 0, row.pr_2 || 0, row.pr_3 || 0, row.pr_4 || 0);
+                                            return (
+                                                <DataTableRow key={idx} onClick={() => router.push(`/players/${row.player_name}`)}>
+                                                    <DataTableCell className="font-medium">{row.player_name}</DataTableCell>
+                                                    <DataTableCell className="text-primary font-medium">{row.exercise}</DataTableCell>
+                                                    <DataTableCell className="text-right text-muted-foreground font-mono">{row.pr_1 || '-'}</DataTableCell>
+                                                    <DataTableCell className="text-right text-muted-foreground font-mono">{row.pr_2 || '-'}</DataTableCell>
+                                                    <DataTableCell className="text-right text-muted-foreground font-mono">{row.pr_3 || '-'}</DataTableCell>
+                                                    <DataTableCell className="text-right text-muted-foreground font-mono">{row.pr_4 || '-'}</DataTableCell>
+                                                    <DataTableCell className="text-right">
+                                                        <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/30">
+                                                            {best} kg
+                                                        </Badge>
+                                                    </DataTableCell>
+                                                </DataTableRow>
+                                            );
+                                        })
+                                    ) : (
+                                        <DataTableEmpty colSpan={7} message="No gym performance data available." />
+                                    )}
+                                </DataTableBody>
+                            </DataTable>
+                        </div>
+                        {filteredGymData.length > 50 && (
+                            <p className="text-xs text-muted-foreground mt-4 text-center">
+                                Showing 50 of {filteredGymData.length} records. Use Data Editor for full access.
+                            </p>
+                        )}
+                    </Card>
+
+                    {/* Exercise Breakdown */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {Array.from(new Set(rawPerfStats.map(p => p.exercise))).slice(0, 4).map(exercise => {
+                            const exerciseData = rawPerfStats.filter(p => p.exercise === exercise);
+                            const avgBest = exerciseData.reduce((sum, p) => {
+                                const best = Math.max(p.pr_1 || 0, p.pr_2 || 0, p.pr_3 || 0, p.pr_4 || 0);
+                                return sum + best;
+                            }, 0) / exerciseData.length;
+
+                            return (
+                                <Card key={exercise} className="glass-card p-6">
+                                    <h3 className="text-lg font-bold text-foreground mb-4">{exercise}</h3>
+                                    <div className="flex justify-between items-center mb-4">
+                                        <span className="text-muted-foreground text-sm">{exerciseData.length} players</span>
+                                        <span className="text-yellow-500 font-bold">Avg: {avgBest.toFixed(1)} kg</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {exerciseData
+                                            .sort((a, b) => {
+                                                const bestA = Math.max(a.pr_1 || 0, a.pr_2 || 0, a.pr_3 || 0, a.pr_4 || 0);
+                                                const bestB = Math.max(b.pr_1 || 0, b.pr_2 || 0, b.pr_3 || 0, b.pr_4 || 0);
+                                                return bestB - bestA;
+                                            })
+                                            .slice(0, 5)
+                                            .map((player, idx) => {
+                                                const best = Math.max(player.pr_1 || 0, player.pr_2 || 0, player.pr_3 || 0, player.pr_4 || 0);
+                                                return (
+                                                    <div key={player.player_name} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-yellow-500 text-black' : 'bg-muted text-foreground'}`}>
+                                                                {idx + 1}
+                                                            </span>
+                                                            <span className="text-sm">{player.player_name}</span>
+                                                        </div>
+                                                        <span className="font-mono text-yellow-500">{best} kg</span>
+                                                    </div>
+                                                );
+                                            })}
+                                    </div>
+                                </Card>
+                            );
+                        })}
+                    </div>
+                </TabsContent>
+
+                {/* Feedback Tab */}
+                <TabsContent value="feedback" className="mt-6 space-y-6">
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <StatCard
+                            title="Total Feedback"
+                            value={feedbackStats?.totalFeedback || 0}
+                            icon={MessageSquare}
+                            color="purple"
+                        />
+                        <StatCard
+                            title="Unique Players"
+                            value={feedbackStats?.uniquePlayers || 0}
+                            icon={Users}
+                            color="blue"
+                        />
+                        <StatCard
+                            title="Matches with Feedback"
+                            value={feedbackStats?.uniqueMatches || 0}
+                            icon={Target}
+                            color="green"
+                        />
+                        <StatCard
+                            title="Avg. Feedback Length"
+                            value={`${Math.round(feedbackStats?.avgFeedbackLength || 0)} chars`}
+                            icon={BarChart3}
+                            color="yellow"
+                        />
+                    </div>
+
+                    {/* Filters - Consistent with Players tab */}
+                    <FilterPanel>
+                        <div className="flex flex-col gap-4">
+                            <div className="flex flex-col md:flex-row gap-4 items-end">
+                                {/* Search */}
+                                <div className="flex-1 relative w-full">
+                                    <Label className="text-xs text-muted-foreground mb-2 block">Search Feedback</Label>
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                                        <Input
+                                            placeholder="Search in feedback content..."
+                                            value={feedbackSearch}
+                                            onChange={(e) => setFeedbackSearch(e.target.value)}
+                                            className="pl-9 h-10"
+                                        />
+                                    </div>
+                                    {feedbackSearch && (
+                                        <button onClick={() => setFeedbackSearch('')} className="text-xs text-destructive mt-1 hover:underline text-right w-full block">Clear</button>
+                                    )}
+                                </div>
+
+                                <Button
+                                    variant={showFeedbackFilters ? "secondary" : "outline"}
+                                    className="gap-2 h-10"
+                                    onClick={() => setShowFeedbackFilters(!showFeedbackFilters)}
+                                >
+                                    <SlidersHorizontal size={16} />
+                                    Filters
+                                    {(selectedFeedbackPlayer !== "all" || selectedFeedbackOpponent !== "all") && (
+                                        <Badge variant="secondary" className="ml-1 px-1 h-5 text-[10px]">!</Badge>
+                                    )}
+                                </Button>
+                            </div>
+
+                            {showFeedbackFilters && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t animate-in slide-in-from-top-2 fade-in duration-200">
+                                    {/* Player Filter */}
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground mb-2 block">Player</Label>
+                                        <ComboSelect
+                                            options={[{ label: "All Players", value: "all" }, ...feedbackPlayers.map(p => ({ label: p, value: p }))]}
+                                            value={selectedFeedbackPlayer}
+                                            onValueChange={setSelectedFeedbackPlayer}
+                                            placeholder="Select player"
+                                            searchPlaceholder="Type to search..."
+                                        />
+                                    </div>
+
+                                    {/* Opponent Filter */}
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground mb-2 block">Opponent</Label>
+                                        <ComboSelect
+                                            options={[{ label: "All Opponents", value: "all" }, ...feedbackOpponents.map(o => ({ label: o, value: o }))]}
+                                            value={selectedFeedbackOpponent}
+                                            onValueChange={setSelectedFeedbackOpponent}
+                                            placeholder="Select opponent"
+                                            searchPlaceholder="Type to search..."
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </FilterPanel>
+
+                    {/* Feedback Sub-tabs */}
+                    <Tabs defaultValue="wordcloud" className="w-full">
+                        <TabsList className="bg-muted p-1 rounded-xl">
+                            <TabsTrigger value="wordcloud" className="rounded-lg">☁️ Word Cloud</TabsTrigger>
+                            <TabsTrigger value="themes" className="rounded-lg">📊 Themes</TabsTrigger>
+                            <TabsTrigger value="ai" className="rounded-lg">🤖 AI Analysis</TabsTrigger>
+                            <TabsTrigger value="list" className="rounded-lg">📝 All Feedback</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="wordcloud" className="mt-6">
+                            <Card className="glass-card p-6">
+                                <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                                    <Sparkles className="text-purple-500 w-5 h-5" />
+                                    Feedback Word Cloud
+                                </h3>
+                                <p className="text-sm text-muted-foreground mb-6">
+                                    Visual representation of the most common words in player feedback. Larger words appear more frequently.
+                                </p>
+                                <div className="flex justify-center bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl p-4">
+                                    <WordCloud
+                                        text={feedbackText}
+                                        width={700}
+                                        height={350}
+                                        className="rounded-lg"
+                                    />
+                                </div>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="themes" className="mt-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <Card className="glass-card p-6">
+                                    <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                                        <TrendingUp className="text-green-500 w-5 h-5" />
+                                        Feedback Themes
+                                    </h3>
+                                    <div className="space-y-4">
+                                        {Object.entries(themeAnalysis).sort((a, b) => b[1] - a[1]).map(([theme, count]) => {
+                                            const maxCount = Math.max(...Object.values(themeAnalysis));
+                                            const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                                            const colors: Record<string, string> = {
+                                                "Teknisk": "bg-blue-500",
+                                                "Fysisk": "bg-green-500",
+                                                "Taktisk": "bg-purple-500",
+                                                "Mental": "bg-yellow-500"
+                                            };
+
+                                            return (
+                                                <div key={theme}>
+                                                    <div className="flex justify-between mb-1">
+                                                        <span className="text-sm font-medium text-foreground">{theme}</span>
+                                                        <span className="text-sm text-muted-foreground">{count} mentions</span>
+                                                    </div>
+                                                    <div className="h-3 bg-muted rounded-full overflow-hidden">
+                                                        <div
+                                                            className={`h-full ${colors[theme] || "bg-primary"} transition-all duration-500`}
+                                                            style={{ width: `${percentage}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </Card>
+
+                                <Card className="glass-card p-6">
+                                    <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                                        <Target className="text-red-500 w-5 h-5" />
+                                        Common Improvement Areas
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {[
+                                            { keyword: "pres", label: "Pressing & Intensity", icon: "⚡" },
+                                            { keyword: "pasninger", label: "Passing Accuracy", icon: "🎯" },
+                                            { keyword: "kommunikation", label: "Communication", icon: "📢" },
+                                            { keyword: "skud", label: "Shooting", icon: "⚽" },
+                                            { keyword: "erobringer", label: "Ball Recovery", icon: "🛡️" },
+                                            { keyword: "tempo", label: "Game Speed", icon: "🏃" }
+                                        ].map(({ keyword, label, icon }) => {
+                                            const count = (feedbackText.toLowerCase().match(new RegExp(keyword, 'g')) || []).length;
+                                            return (
+                                                <div key={keyword} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                                                    <div className="flex items-center gap-2">
+                                                        <span>{icon}</span>
+                                                        <span className="text-sm font-medium text-foreground">{label}</span>
+                                                    </div>
+                                                    <span className="text-sm font-mono text-primary">{count}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </Card>
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="ai" className="mt-6">
+                            <Card className="glass-card p-6">
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                                            <Brain className="text-purple-500 w-5 h-5" />
+                                            AI Feedback Analysis
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                            Use AI to analyze player feedback and get actionable insights.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        onClick={handleAIAnalysis}
+                                        disabled={analyzingAI || filteredFeedback.length === 0}
+                                        className="btn-premium"
+                                    >
+                                        {analyzingAI ? (
+                                            <>
+                                                <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                                                Analyzing...
+                                            </>
                                         ) : (
-                                            <span className="text-xs text-muted-foreground/30 flex items-center gap-1" title="No DOB found"><Ban size={10} /> -</span>
+                                            <>
+                                                <Sparkles className="mr-2 h-4 w-4" />
+                                                Generate AI Analysis
+                                            </>
                                         )}
-                                    </DataTableCell>
-                                    <DataTableCell className="text-right text-muted-foreground font-mono">{player.games}</DataTableCell>
-                                    <DataTableCell className="text-right text-muted-foreground font-mono">
-                                        {player.minutes}&apos;
-                                    </DataTableCell>
-                                    <DataTableCell className="text-right">
-                                        {player.goals > 0 && (
-                                            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30 hover:bg-green-500/20">
+                                    </Button>
+                                </div>
+
+                                {aiAnalysis ? (
+                                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                                        <div className="bg-gradient-to-br from-purple-500/5 to-blue-500/5 p-6 rounded-xl border border-purple-500/20">
+                                            {aiAnalysis.split('\n').map((line, i) => {
+                                                if (line.startsWith('## ')) {
+                                                    return <h2 key={i} className="text-lg font-bold mt-4 mb-2">{line.replace('## ', '')}</h2>;
+                                                }
+                                                if (line.startsWith('- ') || line.startsWith('* ')) {
+                                                    return <p key={i} className="text-muted-foreground ml-4">• {line.slice(2)}</p>;
+                                                }
+                                                if (line.trim()) {
+                                                    return <p key={i} className="text-muted-foreground mb-2">{line}</p>;
+                                                }
+                                                return null;
+                                            })}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-border rounded-xl bg-muted/20">
+                                        <Brain size={48} className="text-muted-foreground mb-4 opacity-50" />
+                                        <h4 className="text-lg font-semibold text-foreground mb-2">No Analysis Yet</h4>
+                                        <p className="text-muted-foreground max-w-md">
+                                            Click "Generate AI Analysis" to get insights from player feedback.
+                                        </p>
+                                    </div>
+                                )}
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="list" className="mt-6">
+                            <Card className="glass-card p-6">
+                                <h3 className="text-lg font-bold text-foreground mb-4">📝 All Feedback Entries</h3>
+                                <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                                    {filteredFeedback.length > 0 ? (
+                                        filteredFeedback.map((entry) => (
+                                            <div
+                                                key={entry.id}
+                                                className="p-4 bg-muted/30 rounded-xl border border-border hover:bg-muted/50 transition-colors"
+                                            >
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <span className="font-semibold text-foreground">{entry.player_name}</span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        vs {entry.opponent} • {entry.match_date}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground italic">"{entry.feedback}"</p>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-12 text-muted-foreground">
+                                            No feedback entries found for the selected filters.
+                                        </div>
+                                    )}
+                                </div>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
+                </TabsContent>
+
+                {/* Insights Tab */}
+                <TabsContent value="insights" className="mt-6 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Top Performers */}
+                        <Card className="glass-card p-6">
+                            <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                                <TrendingUp className="text-green-500 w-5 h-5" />
+                                Top Performers (Passing)
+                            </h3>
+                            <div className="space-y-3">
+                                {aggregatedPlayers
+                                    .filter(p => p.games >= 3)
+                                    .sort((a, b) => b.avgPassing - a.avgPassing)
+                                    .slice(0, 5)
+                                    .map((player, idx) => (
+                                        <div
+                                            key={player.name}
+                                            className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50"
+                                            onClick={() => router.push(`/players/${player.name}`)}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-yellow-500 text-black' : idx === 1 ? 'bg-gray-400 text-black' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-muted text-foreground'}`}>
+                                                    {idx + 1}
+                                                </span>
+                                                <span className="font-medium">{player.name}</span>
+                                            </div>
+                                            <span className="text-green-500 font-mono">{player.avgPassing.toFixed(1)}%</span>
+                                        </div>
+                                    ))}
+                            </div>
+                        </Card>
+
+                        {/* Top Scorers */}
+                        <Card className="glass-card p-6">
+                            <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                                <Target className="text-blue-500 w-5 h-5" />
+                                Top Scorers
+                            </h3>
+                            <div className="space-y-3">
+                                {aggregatedPlayers
+                                    .sort((a, b) => b.goals - a.goals)
+                                    .slice(0, 5)
+                                    .map((player, idx) => (
+                                        <div
+                                            key={player.name}
+                                            className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50"
+                                            onClick={() => router.push(`/players/${player.name}`)}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-yellow-500 text-black' : idx === 1 ? 'bg-gray-400 text-black' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-muted text-foreground'}`}>
+                                                    {idx + 1}
+                                                </span>
+                                                <span className="font-medium">{player.name}</span>
+                                            </div>
+                                            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
                                                 {player.goals} ⚽
                                             </Badge>
-                                        )}
-                                        {player.goals === 0 && <span className="text-muted-foreground/50">-</span>}
-                                    </DataTableCell>
-                                    <DataTableCell className="text-right">
-                                        {player.assists > 0 && (
-                                            <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/30 hover:bg-purple-500/20">
-                                                {player.assists} 👟
-                                            </Badge>
-                                        )}
-                                        {player.assists === 0 && <span className="text-muted-foreground/50">-</span>}
-                                    </DataTableCell>
-                                    <DataTableCell className="text-right">
-                                        <span className={`${player.avgPassing >= 80 ? 'text-green-500' : player.avgPassing >= 70 ? 'text-yellow-500' : 'text-muted-foreground'}`}>
-                                            {player.avgPassing.toFixed(1)}%
-                                        </span>
-                                    </DataTableCell>
-                                    <DataTableCell className="text-right text-muted-foreground">{player.totalTackles}</DataTableCell>
-                                    <DataTableCell className="text-right">
-                                        <div className="flex justify-end gap-1">
-                                            {player.yellowCards > 0 && <span className="w-3 h-4 bg-yellow-500 rounded-sm inline-block" title={`${player.yellowCards} Yellow`} />}
-                                            {player.redCards > 0 && <span className="w-3 h-4 bg-red-500 rounded-sm inline-block" title={`${player.redCards} Red`} />}
-                                            {player.yellowCards === 0 && player.redCards === 0 && <span className="text-muted-foreground/50">-</span>}
                                         </div>
-                                    </DataTableCell>
-                                    <DataTableCell className="text-right">
-                                        {player.perfCount > 0 ? (
-                                            <div className="flex flex-col items-end gap-1">
-                                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 flex items-center gap-1">
-                                                    <Dumbbell size={12} /> {player.perfCount}
-                                                </Badge>
-                                                {player.gymData && player.gymData.length > 0 && (
-                                                    <span className="text-[10px] text-muted-foreground">
-                                                        Best: {Math.max(...player.gymData.map((d: any) => d.maxPR))} kg
-                                                    </span>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <span className="text-muted-foreground/50">-</span>
-                                        )}
-                                    </DataTableCell>
-                                </DataTableRow>
-                            ))
-                        ) : (
-                            <DataTableEmpty colSpan={9} message="No players match your filters." />
-                        )}
-                    </DataTableBody>
-                </DataTable>
-            </div>
+                                    ))}
+                            </div>
+                        </Card>
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-2 mt-4">
-                    <Button
-                        variant="outline"
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                    >
-                        Previous
-                    </Button>
-                    <span className="text-muted-foreground text-sm">
-                        Page {page} of {totalPages}
-                    </span>
-                    <Button
-                        variant="outline"
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages}
-                    >
-                        Next
-                    </Button>
-                </div>
-            )}
+                        {/* Best Gym Performance */}
+                        <Card className="glass-card p-6">
+                            <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                                <Dumbbell className="text-yellow-500 w-5 h-5" />
+                                Best Gym Performance
+                            </h3>
+                            <div className="space-y-3">
+                                {aggregatedPlayers
+                                    .filter(p => p.maxGymPR > 0)
+                                    .sort((a, b) => b.maxGymPR - a.maxGymPR)
+                                    .slice(0, 5)
+                                    .map((player, idx) => (
+                                        <div
+                                            key={player.name}
+                                            className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50"
+                                            onClick={() => router.push(`/players/${player.name}`)}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-yellow-500 text-black' : idx === 1 ? 'bg-gray-400 text-black' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-muted text-foreground'}`}>
+                                                    {idx + 1}
+                                                </span>
+                                                <span className="font-medium">{player.name}</span>
+                                            </div>
+                                            <span className="text-yellow-500 font-mono">{player.maxGymPR} kg</span>
+                                        </div>
+                                    ))}
+                            </div>
+                        </Card>
+
+                        {/* Most Minutes */}
+                        <Card className="glass-card p-6">
+                            <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                                <BarChart3 className="text-purple-500 w-5 h-5" />
+                                Most Minutes Played
+                            </h3>
+                            <div className="space-y-3">
+                                {aggregatedPlayers
+                                    .sort((a, b) => b.minutes - a.minutes)
+                                    .slice(0, 5)
+                                    .map((player, idx) => (
+                                        <div
+                                            key={player.name}
+                                            className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50"
+                                            onClick={() => router.push(`/players/${player.name}`)}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-yellow-500 text-black' : idx === 1 ? 'bg-gray-400 text-black' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-muted text-foreground'}`}>
+                                                    {idx + 1}
+                                                </span>
+                                                <span className="font-medium">{player.name}</span>
+                                            </div>
+                                            <span className="text-purple-500 font-mono">{player.minutes}'</span>
+                                        </div>
+                                    ))}
+                            </div>
+                        </Card>
+                    </div>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

@@ -27,6 +27,7 @@ import {
     DataTableLoading
 } from "@/components/ui/data-table";
 import { PageHeader } from "@/components/ui/page-header";
+import { FilterPanel } from "@/components/ui/filter-panel";
 import { Loader2, CheckCircle, Database, Search, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -227,85 +228,105 @@ export default function DataEditorPage() {
                 iconColor="pink"
                 title="Data Editor"
                 description="Edit match statistics and performance records"
+                actions={
+                    <Button onClick={() => setIsAddOpen(true)} className="bg-primary hover:bg-primary/90">
+                        <Plus size={16} className="mr-2" /> Add Record
+                    </Button>
+                }
             />
 
-            <Card className="glass-card p-4 flex flex-col md:flex-row items-center gap-4 w-full sticky top-4 z-30">
-                {/* Search Bar */}
-                <div className="relative w-full md:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                    <Input
-                        placeholder="Filter data..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="pl-9"
-                    />
-                </div>
-
-                {mode === 'match_stats' && (
-                    <>
-                        {/* Opposition Filter */}
-                        <Select value={opponentFilter} onValueChange={setOpponentFilter}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Opponent" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Opponents</SelectItem>
-                                {uniqueOpponents.map(op => (
-                                    <SelectItem key={op} value={op}>{op}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        {/* Date Range */}
-                        <div className="flex gap-2 items-center">
-                            <Input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="w-[140px]"
-                            />
-                            <span className="text-muted-foreground">-</span>
-                            <Input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                className="w-[140px]"
-                            />
+            {/* Filter Panel - Similar to Player Analysis */}
+            <FilterPanel>
+                <div className="flex flex-col gap-4">
+                    <div className="flex flex-col md:flex-row gap-4 items-end">
+                        {/* Search */}
+                        <div className="flex-1 relative w-full">
+                            <Label className="text-xs text-muted-foreground mb-2 block">Search</Label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                                <Input
+                                    placeholder="Filter by player, opponent, exercise..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-9 h-10"
+                                />
+                            </div>
+                            {search && (
+                                <button onClick={() => setSearch('')} className="text-xs text-destructive mt-1 hover:underline text-right w-full block">Clear</button>
+                            )}
                         </div>
-                    </>
-                )}
 
-                <div className="flex-1" />
+                        {/* Table Mode Selector */}
+                        <div className="w-full md:w-48">
+                            <Label className="text-xs text-muted-foreground mb-2 block">Data Type</Label>
+                            <Select value={mode} onValueChange={(v: EditorTable) => { setMode(v); setSearch(""); setOpponentFilter(""); }}>
+                                <SelectTrigger className="h-10">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="match_stats">⚽ Match Stats</SelectItem>
+                                    <SelectItem value="performance_stats">🏋️ Gym Performance</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                <div className="flex items-center gap-4 bg-muted/50 p-2 rounded-xl border border-border w-full md:w-auto">
-                    <Select value={mode} onValueChange={(v: EditorTable) => { setMode(v); setSearch(""); }}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="match_stats">⚽ Match Stats</SelectItem>
-                            <SelectItem value="performance_stats">🏋️ Gym Performance</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <div className="flex items-center gap-2 px-3 min-w-[100px] justify-end">
-                        {saving ? (
-                            <span className="text-yellow-500 text-xs flex items-center gap-1">
-                                <Loader2 size={12} className="animate-spin" /> Saving...
-                            </span>
-                        ) : lastSaved > 0 ? (
-                            <span className="text-green-500 text-xs flex items-center gap-1 animate-in fade-in">
-                                <CheckCircle size={12} /> Saved
-                            </span>
-                        ) : null}
+                        {/* Save Status */}
+                        <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-xl border border-border h-10">
+                            {saving ? (
+                                <span className="text-yellow-500 text-xs flex items-center gap-1">
+                                    <Loader2 size={12} className="animate-spin" /> Saving...
+                                </span>
+                            ) : lastSaved > 0 ? (
+                                <span className="text-green-500 text-xs flex items-center gap-1 animate-in fade-in">
+                                    <CheckCircle size={12} /> Saved
+                                </span>
+                            ) : (
+                                <span className="text-muted-foreground text-xs">Auto-save enabled</span>
+                            )}
+                        </div>
                     </div>
+
+                    {/* Additional Filters for Match Stats */}
+                    {mode === 'match_stats' && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t animate-in slide-in-from-top-2 fade-in duration-200">
+                            {/* Opposition - ComboSelect like Player Analysis */}
+                            <div>
+                                <Label className="text-xs text-muted-foreground mb-2 block">Opposition</Label>
+                                <ComboSelect
+                                    options={[{ label: "All Opponents", value: "all" }, ...uniqueOpponents.map(o => ({ label: o, value: o }))]}
+                                    value={opponentFilter || "all"}
+                                    onValueChange={(val) => setOpponentFilter(val === "all" ? "" : val)}
+                                    placeholder="Select opponent"
+                                    searchPlaceholder="Type to search..."
+                                />
+                                {opponentFilter && (
+                                    <button onClick={() => setOpponentFilter('')} className="text-xs text-destructive mt-1 hover:underline">Clear</button>
+                                )}
+                            </div>
+
+                            {/* Date Range */}
+                            <div>
+                                <Label className="text-xs text-muted-foreground mb-2 block">Start Date</Label>
+                                <Input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="h-10"
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-xs text-muted-foreground mb-2 block">End Date</Label>
+                                <Input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="h-10"
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
-
-                <Button onClick={() => setIsAddOpen(true)} className="bg-primary hover:bg-primary/90">
-                    <Plus size={16} className="mr-2" /> Add Record
-                </Button>
-
-            </Card >
+            </FilterPanel>
 
             {/* Data Table */}
             < DataTable >
@@ -322,6 +343,7 @@ export default function DataEditorPage() {
                             <DataTableHead className="text-center w-[80px]">Passes</DataTableHead>
                             <DataTableHead className="text-center w-[80px]">Succ. Passes</DataTableHead>
                             <DataTableHead className="text-center w-[80px]">Tackles</DataTableHead>
+                            <DataTableHead className="min-w-[200px]">Feedback</DataTableHead>
                             <DataTableHead className="w-[50px]"></DataTableHead>
                         </>
                     ) : (
@@ -338,9 +360,9 @@ export default function DataEditorPage() {
                 </DataTableHeader>
                 <DataTableBody>
                     {loading ? (
-                        <DataTableLoading colSpan={mode === 'match_stats' ? 11 : 7} />
+                        <DataTableLoading colSpan={mode === 'match_stats' ? 12 : 7} />
                     ) : filteredData.length === 0 ? (
-                        <DataTableEmpty colSpan={mode === 'match_stats' ? 11 : 7} message="No data matches your search." />
+                        <DataTableEmpty colSpan={mode === 'match_stats' ? 12 : 7} message="No data matches your search." />
                     ) : (
                         filteredData.map((row) => (
                             <DataTableRow key={mode === 'match_stats' ? `${row.match_id}-${row.player_name}` : `${row.player_name}-${row.exercise}`}>
@@ -356,6 +378,7 @@ export default function DataEditorPage() {
                                         <EditableCell row={row} field="total_passes" val={row.total_passes} onUpdate={handleUpdate} />
                                         <EditableCell row={row} field="successful_passes" val={row.successful_passes} onUpdate={handleUpdate} />
                                         <EditableCell row={row} field="total_tackles" val={row.total_tackles} onUpdate={handleUpdate} />
+                                        <EditableCell row={row} field="feedback" val={row.feedback} onUpdate={handleUpdate} className="text-left text-xs italic text-muted-foreground" />
                                         <DataTableCell className="p-1">
                                             <Button variant="ghost" size="sm" onClick={() => handleDelete(row)} className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0">
                                                 <Trash2 size={16} />
