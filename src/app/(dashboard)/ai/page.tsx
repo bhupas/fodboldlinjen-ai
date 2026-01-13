@@ -118,102 +118,172 @@ export default function AICoachPage() {
             const html2canvas = (await import('html2canvas')).default;
             const jsPDF = (await import('jspdf')).default;
 
-            const element = document.getElementById('report-view');
-            if (!element) return;
+            const sourceElement = document.getElementById('report-view');
+            if (!sourceElement) return;
 
-            // Create a temporary container for the PDF render
-            const container = document.createElement('div');
-            container.style.position = 'absolute';
-            container.style.left = '-9999px';
-            container.style.top = '0';
-            container.style.width = '794px'; // ~A4 width at 96dpi (210mm)
-            container.style.backgroundColor = '#ffffff'; // Force white background
-            container.style.color = '#000000'; // Force black text
-            container.style.padding = '40px';
-            container.style.fontFamily = 'Arial, sans-serif'; // Standard font
+            // 1. Prepare the container for generating pages
+            const workContainer = document.createElement('div');
+            workContainer.style.position = 'absolute';
+            workContainer.style.left = '-9999px';
+            workContainer.style.top = '0';
+            workContainer.style.width = '794px'; // A4 width at 96 DPI
+            workContainer.className = 'font-sans text-black bg-white';
+            document.body.appendChild(workContainer);
 
-            // Re-render content without dark mode classes
-            // We just use basic markdown-like structure for the print report.
-            // Ideally we'd clone the element and strip classes, but cloning preserves computed styles (like yellow text).
-            // So we'll inject the html string but inside a "prose" wrapper that is NOT inverted.
-            // Actually, simply cloning and overriding CSS variables is easiest if we use Tailwind prose
+            // 2. Styles for the print pages
+            const pageStyle = {
+                width: '794px',
+                minHeight: '1120px', // A4 height
+                padding: '40px 60px',
+                backgroundColor: 'white',
+                boxSizing: 'border-box' as const,
+                position: 'relative' as const,
+                overflow: 'hidden' as const,
+                borderBottom: '1px solid #eee' // visual separator while debugging
+            };
 
-            container.className = 'prose max-w-none text-black bg-white';
-            // We manually style the inner HTML to ensure high contrast
-            const cleanContent = element.innerHTML
-                .replace(/text-primary/g, 'text-black font-bold') // Replace primary color with bold black
-                .replace(/text-purple-500/g, 'text-black font-bold uppercase') // Replace purple headers
-                .replace(/text-foreground/g, 'text-black')
-                .replace(/text-muted-foreground/g, 'text-gray-600')
-                .replace(/bg-muted\/30/g, 'bg-gray-100')
-                .replace(/prose-invert/g, ''); // Remove invert
+            const createNewPage = (pageNum: number) => {
+                const page = document.createElement('div');
+                Object.assign(page.style, pageStyle);
 
-            container.innerHTML = `
-                <div style="font-family: Arial, sans-serif; color: #000000;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px;">
+                // Add Header
+                page.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 30px;">
                         <div>
-                            <h1 style="font-size: 28px; font-weight: bold; margin: 0; text-transform: uppercase;">AI Coach Analysis</h1>
-                            <p style="font-size: 14px; margin: 5px 0 0 0; color: #444;">Professional Tactical Report</p>
+                            <h1 style="font-size: 24px; font-weight: bold; margin: 0; text-transform: uppercase; color: #000;">AI Coach Analysis</h1>
+                            <p style="font-size: 10px; margin: 5px 0 0 0; color: #444;">PROFESSIONAL TACTICAL REPORT</p>
                         </div>
                         <div style="text-align: right;">
-                            <p style="font-size: 12px; margin: 0; font-weight: bold;">FODBOLDLINJEN AI</p>
-                            <p style="font-size: 12px; margin: 0;">${new Date().toLocaleDateString()}</p>
+                            <p style="font-size: 14px; margin: 0; font-weight: bold; color: #000;">myaitrainer</p>
+                            <p style="font-size: 10px; margin: 0; color: #666;">Page ${pageNum} • ${new Date().toLocaleDateString()}</p>
                         </div>
                     </div>
-                    
-                    <div style="font-size: 12px; line-height: 1.6;">
-                        ${cleanContent}
-                    </div>
+                    <div class="page-content" style="font-size: 12px; line-height: 1.5; color: #000;"></div>
+                `;
+                return page;
+            };
 
-                    <div style="margin-top: 50px; border-top: 1px solid #ccc; padding-top: 15px; text-align: center; font-size: 10px; color: #666;">
-                        <p>Generated by Fodboldlinjen Intelligence Platform • Confidential Team Analysis</p>
-                    </div>
-                </div>
-            `;
+            // 3. Process Content and Paginate
+            let currentPage = createNewPage(1);
+            let contentContainer = currentPage.querySelector('.page-content') as HTMLElement;
+            workContainer.appendChild(currentPage);
 
-            document.body.appendChild(container);
+            let pageNum = 1;
+            const contentNodes = Array.from(sourceElement.children);
 
-            const canvas = await html2canvas(container, {
-                scale: 2,
-                backgroundColor: '#ffffff',
-                useCORS: true,
-                logging: false,
-                onclone: (clonedDoc) => {
-                    // Extra safety to force black styles in the cloned document before rendering
-                    const allElements = clonedDoc.querySelectorAll('*');
-                    allElements.forEach((el: any) => {
-                        el.style.color = '#000000';
-                        if (el.tagName === 'H1' || el.tagName === 'H2') {
-                            el.style.borderBottomColor = '#000000';
-                        }
-                    });
+            // Helper to clean styles of a node
+            const cleanNode = (node: Element) => {
+                const cloned = node.cloneNode(true) as HTMLElement;
+                // Strip all classes that give color
+                cloned.className = '';
+                cloned.style.color = '#000000';
+                cloned.style.backgroundColor = 'transparent';
+                cloned.style.border = 'none';
+
+                // Fix headers
+                if (['H1', 'H2', 'H3'].includes(cloned.tagName)) {
+                    cloned.style.marginTop = '20px';
+                    cloned.style.marginBottom = '10px';
+                    cloned.style.fontWeight = 'bold';
+                    cloned.style.textTransform = 'uppercase';
+                    cloned.style.borderBottom = cloned.tagName === 'H2' ? '1px solid #000' : 'none';
+                    cloned.style.paddingBottom = cloned.tagName === 'H2' ? '5px' : '0';
                 }
-            });
 
-            document.body.removeChild(container);
+                // Fix Lists/Cards styling from the image provided
+                // The image showed grey boxes. We want to convert them to simple clear text blocks.
+                if (cloned.tagName === 'DIV' || cloned.tagName === 'P') {
+                    // Check if it was one of those grid/flex rows
+                    const isGrid = node.className.includes('grid') || node.className.includes('flex');
+                    if (isGrid) {
+                        cloned.style.display = 'block';
+                        cloned.style.marginBottom = '8px';
+                        cloned.style.padding = '0';
+                    }
+                }
 
-            const imgData = canvas.toDataURL('image/jpeg', 1.0);
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = pdfWidth;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                // Aggressive recursive styling for children to remove colors
+                const children = cloned.querySelectorAll('*');
+                children.forEach((child: any) => {
+                    child.style.color = '#000000';
+                    child.style.backgroundColor = 'transparent';
+                    // Convert badges/chips to bold text
+                    if (child.className && typeof child.className === 'string' && child.className.includes('Badge')) {
+                        child.style.border = '1px solid #000';
+                        child.style.padding = '2px 4px';
+                        child.style.borderRadius = '4px';
+                    }
+                });
 
-            // Add pages logic
-            let heightLeft = imgHeight;
-            let position = 0;
+                return cloned;
+            };
 
-            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pdfHeight;
+            for (const node of contentNodes) {
+                // If it's a spacer div, skip
+                if (node.tagName === 'DIV' && node.className === 'h-4') continue;
 
-            while (heightLeft > 0) {
-                position -= pdfHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pdfHeight;
+                const cleanElement = cleanNode(node);
+                contentContainer.appendChild(cleanElement);
+
+                // Check overflow
+                // We use a safe height of approx 950px for content area (1120 total - margins)
+                if (contentContainer.getBoundingClientRect().height > 850) {
+                    // Oops, this element made it overflow.
+                    // Remove it from this page
+                    contentContainer.removeChild(cleanElement);
+
+                    // Start new page
+                    pageNum++;
+                    currentPage = createNewPage(pageNum);
+                    contentContainer = currentPage.querySelector('.page-content') as HTMLElement;
+                    workContainer.appendChild(currentPage);
+
+                    // Add element to new page
+                    contentContainer.appendChild(cleanElement);
+                }
             }
 
-            pdf.save(`AI_Coach_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+            // Add Footer to last page
+            const footer = document.createElement('div');
+            footer.innerHTML = `
+                <div style="margin-top: 40px; border-top: 1px solid #ccc; padding-top: 10px; text-align: center; font-size: 9px; color: #888;">
+                    <p>Generated by myaitrainer Intelligence Platform • Confidential Team Analysis</p>
+                </div>
+            `;
+            // Check if footer fits, else new page (rare but possible)
+            contentContainer.appendChild(footer);
+            if (contentContainer.getBoundingClientRect().height > 900) {
+                contentContainer.removeChild(footer);
+                pageNum++;
+                currentPage = createNewPage(pageNum);
+                contentContainer = currentPage.querySelector('.page-content') as HTMLElement;
+                workContainer.appendChild(currentPage);
+                contentContainer.appendChild(footer);
+            }
+
+
+            // 4. Generate PDF from Pages
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pages = Array.from(workContainer.children);
+
+            for (let i = 0; i < pages.length; i++) {
+                const pageElement = pages[i] as HTMLElement;
+                const canvas = await html2canvas(pageElement, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff'
+                });
+
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+
+                if (i > 0) pdf.addPage();
+                pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            }
+
+            pdf.save(`myaitrainer_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+            document.body.removeChild(workContainer);
 
         } catch (error) {
             console.error("PDF Export failed", error);
@@ -221,7 +291,7 @@ export default function AICoachPage() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `AI_Coach_Report.txt`;
+            a.download = `myaitrainer_Analysis.txt`;
             a.click();
         }
     };
