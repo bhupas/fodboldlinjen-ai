@@ -22,6 +22,7 @@ import {
     Scatter,
     ZAxis,
     ReferenceLine,
+    ReferenceArea,
     Label
 } from 'recharts';
 import Link from "next/link";
@@ -210,56 +211,139 @@ export default function DashboardPage() {
                 </Card>
             </div>
 
-            {/* Advanced Analytics - Scatter Plot: Offense vs Defense */}
+            {/* Advanced Analytics - Player Roles Quadrant */}
             <Card className="glass-card p-6">
                 <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                        <Users className="text-purple-500 w-5 h-5" />
-                        Player Styles Analysis
-                    </h3>
-                    <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
-                        Contribution per Match
+                    <div className="space-y-1">
+                        <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                            <Users className="text-purple-500 w-5 h-5" />
+                            Player Roles Analysis
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                            Center (0,0) represents the Team Average.
+                        </p>
+                    </div>
+                    <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full border border-border">
+                        Relative Performance
                     </span>
                 </div>
-                <div className="h-[300px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                            <XAxis type="number" dataKey="defContrib" name="Defensive" unit="" stroke="hsl(var(--muted-foreground))" fontSize={11}>
-                                <Label value="Defensive Contribution" offset={-10} position="insideBottom" />
-                            </XAxis>
-                            <YAxis type="number" dataKey="offContrib" name="Offensive" unit="" stroke="hsl(var(--muted-foreground))" fontSize={11}>
-                                <Label value="Offensive Contribution" angle={-90} position="left" />
-                            </YAxis>
-                            <ZAxis type="number" dataKey="games" range={[60, 400]} name="Games" />
-                            <Tooltip cursor={{ strokeDasharray: '3 3' }}
-                                content={({ active, payload }) => {
-                                    if (active && payload && payload.length) {
-                                        const data = payload[0].payload;
-                                        return (
-                                            <div style={{ backgroundColor: '#000', border: '1px solid #444', borderRadius: '8px', padding: '8px 12px', boxShadow: '0 4px 16px rgba(0,0,0,0.6)' }}>
-                                                <p style={{ color: '#fff', fontWeight: 600, fontSize: '13px', margin: 0 }}>{data.name}</p>
-                                                <p style={{ color: '#ddd', fontSize: '12px', margin: '4px 0 0 0' }}>Off: {Number(data.offContrib).toFixed(1)}</p>
-                                                <p style={{ color: '#ddd', fontSize: '12px', margin: '0' }}>Def: {Number(data.defContrib).toFixed(1)}</p>
-                                                <p style={{ color: '#888', fontSize: '10px', margin: '4px 0 0 0' }}>{data.games} Matches</p>
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                }}
-                            />
-                            <ReferenceLine y={0} stroke="hsl(var(--border))" />
-                            <ReferenceLine x={0} stroke="hsl(var(--border))" />
-                            <Scatter name="Players" data={data.allPlayers} fill="#8884d8">
-                                {data.allPlayers.map((entry: any, index: number) => (
-                                    <Cell key={`cell-${index}`} fill={`hsl(var(--primary))`} fillOpacity={0.7} />
-                                ))}
-                            </Scatter>
-                        </ScatterChart>
-                    </ResponsiveContainer>
-                </div>
-                <div className="grid grid-cols-2 text-xs text-muted-foreground mt-2 px-8">
-                    <div className="text-left">High Defense</div>
-                    <div className="text-right">High Offense</div>
+                <div className="h-[400px] w-full">
+                    {(() => {
+                        // 1. Calculate Averages
+                        const playerCount = data.allPlayers.length || 1;
+                        const avgDef = data.allPlayers.reduce((sum: number, p: any) => sum + p.defContrib, 0) / playerCount;
+                        const avgOff = data.allPlayers.reduce((sum: number, p: any) => sum + p.offContrib, 0) / playerCount;
+
+                        // 2. Center Data
+                        const centeredData = data.allPlayers.map((p: any) => ({
+                            ...p,
+                            x: p.defContrib - avgDef,
+                            y: p.offContrib - avgOff,
+                            originalDef: p.defContrib,
+                            originalOff: p.offContrib
+                        }));
+
+                        // 3. Determine symmetric scale size
+                        const maxAbsX = Math.max(...centeredData.map((p: any) => Math.abs(p.x))) * 1.2 || 10;
+                        const maxAbsY = Math.max(...centeredData.map((p: any) => Math.abs(p.y))) * 1.2 || 10;
+                        const domain = Math.max(maxAbsX, maxAbsY);
+
+                        return (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
+                                    <XAxis
+                                        type="number"
+                                        dataKey="x"
+                                        name="Relative Defense"
+                                        domain={[-domain, domain]}
+                                        stroke="hsl(var(--muted-foreground))"
+                                        fontSize={10}
+                                        tickFormatter={(val) => val === 0 ? '' : val.toFixed(1)}
+                                    >
+                                        <Label value="Defensive Contribution vs. Avg" offset={-10} position="insideBottom" fontSize={11} fill="hsl(var(--muted-foreground))" />
+                                    </XAxis>
+                                    <YAxis
+                                        type="number"
+                                        dataKey="y"
+                                        name="Relative Offense"
+                                        domain={[-domain, domain]}
+                                        stroke="hsl(var(--muted-foreground))"
+                                        fontSize={10}
+                                        tickFormatter={(val) => val === 0 ? '' : val.toFixed(1)}
+                                    >
+                                        <Label value="Offensive Contribution vs. Avg" angle={-90} position="left" style={{ textAnchor: 'middle' }} fontSize={11} fill="hsl(var(--muted-foreground))" />
+                                    </YAxis>
+                                    <ZAxis type="number" dataKey="games" range={[60, 400]} name="Games" />
+
+                                    <Tooltip cursor={{ strokeDasharray: '3 3' }}
+                                        content={({ active, payload }) => {
+                                            if (active && payload && payload.length) {
+                                                const d = payload[0].payload;
+                                                return (
+                                                    <div style={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', padding: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
+                                                        <p className="font-bold text-foreground text-sm mb-1">{d.name}</p>
+                                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                                                            <span className="text-muted-foreground">Defense:</span>
+                                                            <span className={d.x >= 0 ? "text-green-500" : "text-destructive"}>
+                                                                {d.originalDef.toFixed(1)} ({d.x >= 0 ? '+' : ''}{d.x.toFixed(1)})
+                                                            </span>
+                                                            <span className="text-muted-foreground">Offense:</span>
+                                                            <span className={d.y >= 0 ? "text-green-500" : "text-destructive"}>
+                                                                {d.originalOff.toFixed(1)} ({d.y >= 0 ? '+' : ''}{d.y.toFixed(1)})
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-[10px] text-muted-foreground mt-2 border-t pt-1 border-border/50">{d.games} Matches Played</p>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
+
+                                    {/* The Cartesian Axes */}
+                                    <ReferenceLine y={0} stroke="hsl(var(--foreground))" strokeWidth={2} />
+                                    <ReferenceLine x={0} stroke="hsl(var(--foreground))" strokeWidth={2} />
+
+                                    {/* Quadrant Labels placed in the corners */}
+                                    {/* Top Right: Total Package */}
+                                    <ReferenceArea x1={0} x2={domain} y1={0} y2={domain} fill="hsl(var(--primary))" fillOpacity={0.03} />
+                                    <ReferenceArea x1={2} x2={domain} y1={2} y2={domain} fill="transparent">
+                                        <Label value="Total Package" position="center" fill="hsl(var(--primary))" fillOpacity={0.5} fontSize={16} fontWeight="bold" />
+                                    </ReferenceArea>
+
+                                    {/* Bottom Right: Defensive Specialist */}
+                                    <ReferenceArea x1={0} x2={domain} y1={-domain} y2={0} fill="hsl(var(--blue-500))" fillOpacity={0.03} />
+                                    <ReferenceArea x1={2} x2={domain} y1={-domain} y2={-2} fill="transparent">
+                                        <Label value="Defensive Specialist" position="center" fill="hsl(var(--blue-500))" fillOpacity={0.4} fontSize={16} fontWeight="bold" />
+                                    </ReferenceArea>
+
+                                    {/* Top Left: Attacking Specialist */}
+                                    <ReferenceArea x1={-domain} x2={0} y1={0} y2={domain} fill="hsl(var(--destructive))" fillOpacity={0.03} />
+                                    <ReferenceArea x1={-domain} x2={-2} y1={2} y2={domain} fill="transparent">
+                                        <Label value="Attacker" position="center" fill="hsl(var(--destructive))" fillOpacity={0.4} fontSize={16} fontWeight="bold" />
+                                    </ReferenceArea>
+
+                                    {/* Bottom Left: Developing */}
+                                    <ReferenceArea x1={-domain} x2={0} y1={-domain} y2={0} fill="hsl(var(--muted))" fillOpacity={0.05} />
+                                    <ReferenceArea x1={-domain} x2={-2} y1={-domain} y2={-2} fill="transparent">
+                                        <Label value="Developing" position="center" fill="hsl(var(--muted-foreground))" fillOpacity={0.3} fontSize={16} fontWeight="bold" />
+                                    </ReferenceArea>
+
+                                    <Scatter name="Players" data={centeredData}>
+                                        {centeredData.map((entry: any, index: number) => {
+                                            // Dynamic coloring based on quadrant
+                                            let color = "hsl(var(--muted-foreground))";
+                                            if (entry.x > 0 && entry.y > 0) color = "hsl(var(--primary))"; // Total
+                                            else if (entry.x > 0 && entry.y <= 0) color = "hsl(var(--blue-500))"; // Def
+                                            else if (entry.x <= 0 && entry.y > 0) color = "hsl(var(--destructive))"; // Off
+
+                                            return <Cell key={`cell-${index}`} fill={color} stroke="hsl(var(--background))" strokeWidth={2} />;
+                                        })}
+                                    </Scatter>
+                                </ScatterChart>
+                            </ResponsiveContainer>
+                        );
+                    })()}
                 </div>
             </Card>
 
