@@ -248,7 +248,7 @@ export function FeedbackTab({ feedback, feedbackStats, feedbackPlayers, feedback
                                     <div
                                         key={idx}
                                         className="p-4 bg-muted/30 rounded-xl border border-border hover:border-primary/30 transition-colors cursor-pointer"
-                                        onClick={() => router.push(`/players/${entry.player_name}`)}
+                                        onClick={() => router.push(`/players/${entry.player_name}?from=feedback`)}
                                     >
                                         <div className="flex flex-wrap items-center gap-2 mb-2">
                                             <span className="font-semibold text-primary">{entry.player_name}</span>

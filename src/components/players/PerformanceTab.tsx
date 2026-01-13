@@ -173,7 +173,7 @@ export function PerformanceTab({ rawMatchStats, aggregatedPlayers, uniqueOpponen
                     <DataTableBody>
                         {paginatedPlayers.length > 0 ? (
                             paginatedPlayers.map((player) => (
-                                <DataTableRow key={player.name} onClick={() => router.push(`/players/${player.name}`)}>
+                                <DataTableRow key={player.name} onClick={() => router.push(`/players/${player.name}?from=players`)}>
                                     <DataTableCell className="font-medium">{player.name}</DataTableCell>
                                     <DataTableCell className="hidden md:table-cell">
                                         {player.age ? (

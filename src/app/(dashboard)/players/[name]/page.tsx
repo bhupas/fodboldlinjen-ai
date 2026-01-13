@@ -42,7 +42,7 @@ import {
     AreaChart,
     Area
 } from "recharts";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import Link from "next/link";
@@ -50,13 +50,15 @@ import { FifaCard } from "@/components/players/FifaCard";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function PlayerProfilePage({ params }: { params: { name: string } }) {
-    // ... (rest of the file remains, but uses Popover instead of HoverCard)
-    // I will target the specific blocks.
-
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const playerName = decodeURIComponent(params.name);
+
+    // Determine back URL based on source tab
+    const fromTab = searchParams.get('from');
+    const backUrl = fromTab ? `/players?tab=${fromTab}` : '/players';
 
     useEffect(() => {
         getPlayerStats(playerName).then(res => {
@@ -213,7 +215,7 @@ export default function PlayerProfilePage({ params }: { params: { name: string }
                 description={headerDescription}
                 icon={User}
                 iconColor="purple"
-                backUrl="/players"
+                backUrl={backUrl}
                 actions={
                     <Button
                         onClick={() => router.push('/ai')}

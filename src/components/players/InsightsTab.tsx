@@ -139,7 +139,7 @@ export function InsightsTab({ aggregatedPlayers }: InsightsTabProps) {
                     valueKey="avgPassing"
                     valueFormat={(v) => `${v.toFixed(1)}%`}
                     valueColor="text-green-500"
-                    onPlayerClick={(name) => router.push(`/players/${name}`)}
+                    onPlayerClick={(name) => router.push(`/players/${name}?from=insights`)}
                 />
 
                 {/* Top Scorers */}
@@ -153,7 +153,7 @@ export function InsightsTab({ aggregatedPlayers }: InsightsTabProps) {
                     valueFormat={(v) => `${v} ⚽`}
                     valueColor="text-green-500"
                     badgeStyle
-                    onPlayerClick={(name) => router.push(`/players/${name}`)}
+                    onPlayerClick={(name) => router.push(`/players/${name}?from=insights`)}
                 />
 
                 {/* Best Gym Performance */}
@@ -167,7 +167,7 @@ export function InsightsTab({ aggregatedPlayers }: InsightsTabProps) {
                     valueKey="maxGymPR"
                     valueFormat={(v) => `${v} kg`}
                     valueColor="text-yellow-500"
-                    onPlayerClick={(name) => router.push(`/players/${name}`)}
+                    onPlayerClick={(name) => router.push(`/players/${name}?from=insights`)}
                 />
             </div>
         </div>

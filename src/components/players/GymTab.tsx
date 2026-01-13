@@ -166,7 +166,7 @@ export function GymTab({ rawPerfStats }: GymTabProps) {
                                 paginatedData.map((row, idx) => {
                                     const best = Math.max(row.pr_1 || 0, row.pr_2 || 0, row.pr_3 || 0, row.pr_4 || 0);
                                     return (
-                                        <DataTableRow key={idx} onClick={() => router.push(`/players/${row.player_name}`)}>
+                                        <DataTableRow key={idx} onClick={() => router.push(`/players/${row.player_name}?from=gym`)}>
                                             <DataTableCell className="font-medium">{row.player_name}</DataTableCell>
                                             <DataTableCell className="text-primary font-medium">{row.exercise}</DataTableCell>
                                             <DataTableCell className="text-right text-muted-foreground font-mono hidden md:table-cell">{row.pr_1 || '-'}</DataTableCell>

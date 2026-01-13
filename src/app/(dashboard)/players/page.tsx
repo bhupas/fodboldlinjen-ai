@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { Suspense, useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { CountBadge } from "@/components/ui/stats-display";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
@@ -16,7 +17,16 @@ import {
     FeedbackStats
 } from "@/lib/services/feedback";
 
-export default function PlayerStatsPage() {
+// Inner component that uses useSearchParams
+function PlayerStatsContent() {
+    const searchParams = useSearchParams();
+
+    // Determine default tab from query param (for back navigation)
+    const tabParam = searchParams.get('tab');
+    const defaultTab = tabParam && ['players', 'gym', 'feedback', 'insights'].includes(tabParam)
+        ? tabParam
+        : 'players';
+
     // Raw data
     const [rawMatchStats, setRawMatchStats] = useState<any[]>([]);
     const [rawPerfStats, setRawPerfStats] = useState<any[]>([]);
@@ -138,7 +148,7 @@ export default function PlayerStatsPage() {
             />
 
             {/* Main Tabs */}
-            <Tabs defaultValue="players" className="w-full">
+            <Tabs defaultValue={defaultTab} className="w-full">
                 <TabsList className="bg-muted p-1 rounded-xl w-full md:w-auto flex overflow-x-auto no-scrollbar md:inline-flex">
                     <TabsTrigger value="players" className="rounded-lg gap-2 flex-1 md:flex-none min-w-[100px]">
                         <TrendingUp size={16} />
@@ -184,5 +194,14 @@ export default function PlayerStatsPage() {
                 </TabsContent>
             </Tabs>
         </div>
+    );
+}
+
+// Wrapper component with Suspense boundary for useSearchParams
+export default function PlayerStatsPage() {
+    return (
+        <Suspense fallback={<LoadingSkeleton variant="table" />}>
+            <PlayerStatsContent />
+        </Suspense>
     );
 }
