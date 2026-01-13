@@ -150,7 +150,7 @@ export function GymTab({ rawPerfStats }: GymTabProps) {
                     <Badge className="ml-2 bg-yellow-500/10 text-yellow-500 border-yellow-500/30">{filteredGymData.length}</Badge>
                 </h3>
 
-                <div>
+                <div className="min-h-[300px]">
                     <DataTable maxHeight="400px">
                         <DataTableHeader sticky>
                             <DataTableHead>Player</DataTableHead>

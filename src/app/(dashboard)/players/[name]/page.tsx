@@ -141,15 +141,111 @@ export default function PlayerProfilePage({ params }: { params: { name: string }
     const stats = calculateStats();
     const overallRating = Math.round(Object.values(stats).reduce((a, b) => a + b, 0) / 6);
 
-    // Radar Data
+    // Team Averages (simulated - in production these would come from actual team data)
+    const teamAvgPassing = 75;
+    const teamAvgGoals = 3;
+    const teamAvgAssists = 2;
+    const teamAvgShots = 12;
+    const teamAvgTackles = 15;
+    const teamAvgMinutes = 450;
+
+    // Max values for normalization (same as ComparisonRadar)
+    const MAX_GOALS = 15;
+    const MAX_ASSISTS = 15;
+    const MAX_SHOTS = 50;
+    const MAX_TACKLES = 50;
+    const MAX_MINUTES = 1800;
+
+    const normalize = (val: number, max: number) => {
+        if (!val) return 0;
+        return Math.min(100, (val / max) * 100);
+    };
+
+    // Radar Data - same format as head-to-head comparison
     const radarData = [
-        { subject: 'Pace', A: stats.pac, fullMark: 100 },
-        { subject: 'Shooting', A: stats.sho, fullMark: 100 },
-        { subject: 'Passing', A: stats.pas, fullMark: 100 },
-        { subject: 'Dribbling', A: stats.dri, fullMark: 100 },
-        { subject: 'Defense', A: stats.def, fullMark: 100 },
-        { subject: 'Physical', A: stats.phy, fullMark: 100 },
+        {
+            subject: 'Passing',
+            A: profile.avgPassing || 0,
+            B: teamAvgPassing,
+            fullMark: 100,
+            rawA: `${(profile.avgPassing || 0).toFixed(1)}%`,
+            rawB: `${teamAvgPassing}%`,
+        },
+        {
+            subject: 'Goals',
+            A: normalize(totalGoals, MAX_GOALS),
+            B: normalize(teamAvgGoals, MAX_GOALS),
+            fullMark: 100,
+            rawA: totalGoals || 0,
+            rawB: teamAvgGoals,
+        },
+        {
+            subject: 'Assists',
+            A: normalize(totalAssists, MAX_ASSISTS),
+            B: normalize(teamAvgAssists, MAX_ASSISTS),
+            fullMark: 100,
+            rawA: totalAssists || 0,
+            rawB: teamAvgAssists,
+        },
+        {
+            subject: 'Shots',
+            A: normalize(totalShots, MAX_SHOTS),
+            B: normalize(teamAvgShots, MAX_SHOTS),
+            fullMark: 100,
+            rawA: totalShots || 0,
+            rawB: teamAvgShots,
+        },
+        {
+            subject: 'Defense',
+            A: normalize(totalTackles, MAX_TACKLES),
+            B: normalize(teamAvgTackles, MAX_TACKLES),
+            fullMark: 100,
+            rawA: totalTackles || 0,
+            rawB: teamAvgTackles,
+        },
+        {
+            subject: 'Playtime',
+            A: normalize(profile.minutes, MAX_MINUTES),
+            B: normalize(teamAvgMinutes, MAX_MINUTES),
+            fullMark: 100,
+            rawA: `${profile.minutes || 0}'`,
+            rawB: `${teamAvgMinutes}'`,
+        }
     ];
+
+    // Custom label renderer for radar (shows raw values)
+    const renderRadarLabel = (props: any) => {
+        const { cx, cy, payload, x, y } = props;
+        const dataPoint = radarData.find(d => d.subject === payload.value);
+
+        return (
+            <g>
+                <text
+                    x={x}
+                    y={y}
+                    textAnchor={x > cx ? 'start' : x < cx ? 'end' : 'middle'}
+                    dominantBaseline={y > cy ? 'hanging' : y < cy ? 'auto' : 'middle'}
+                    fill="hsl(var(--foreground))"
+                    fontSize={13}
+                    fontWeight={600}
+                >
+                    {payload.value}
+                </text>
+                {dataPoint && (
+                    <text
+                        x={x}
+                        y={y + 14}
+                        textAnchor={x > cx ? 'start' : x < cx ? 'end' : 'middle'}
+                        dominantBaseline={y > cy ? 'hanging' : 'auto'}
+                        fill="hsl(var(--muted-foreground))"
+                        fontSize={10}
+                    >
+                        {dataPoint.rawA} vs {dataPoint.rawB}
+                    </text>
+                )}
+            </g>
+        );
+    };
 
     // Chart Data Preparation
     const matchHistoryData = matches.slice().reverse().slice(0, 10).map((m: any) => ({
@@ -265,31 +361,102 @@ export default function PlayerProfilePage({ params }: { params: { name: string }
 
                 {/* 2. Stats & Radar */}
                 <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Radar Chart */}
-                    <Card className="glass-card flex flex-col items-center justify-center p-4 min-h-[350px]">
-                        <h3 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2">
-                            <Activity className="w-5 h-5 text-primary" /> Attribute Profile
+                    {/* Radar Chart - Same style as head-to-head */}
+                    <Card className="glass-card flex flex-col items-center justify-center p-4 min-h-[400px] relative overflow-hidden">
+                        {/* Glow effects */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-48 h-48 rounded-full blur-3xl opacity-10 bg-blue-500" />
+                            <div className="w-48 h-48 rounded-full blur-3xl opacity-10 bg-purple-500 -ml-24" />
+                        </div>
+
+                        <h3 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2 z-10">
+                            <Activity className="w-5 h-5 text-primary" /> Player vs Team Average
                         </h3>
-                        <div className="w-full h-[300px]">
+                        <div className="w-full h-[300px] relative z-10">
                             <ResponsiveContainer width="100%" height="100%">
-                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                                    <PolarGrid stroke="hsl(var(--border))" />
-                                    <PolarAngleAxis dataKey="subject" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                                <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radarData}>
+                                    <defs>
+                                        {/* Gradient for Player */}
+                                        <linearGradient id="playerGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8} />
+                                            <stop offset="100%" stopColor="#1d4ed8" stopOpacity={0.3} />
+                                        </linearGradient>
+                                        {/* Gradient for Team Avg */}
+                                        <linearGradient id="teamGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#a855f7" stopOpacity={0.8} />
+                                            <stop offset="100%" stopColor="#7c3aed" stopOpacity={0.3} />
+                                        </linearGradient>
+                                        {/* Glow filter */}
+                                        <filter id="radarGlow" x="-50%" y="-50%" width="200%" height="200%">
+                                            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                                            <feMerge>
+                                                <feMergeNode in="coloredBlur" />
+                                                <feMergeNode in="SourceGraphic" />
+                                            </feMerge>
+                                        </filter>
+                                    </defs>
+                                    <PolarGrid
+                                        stroke="hsl(var(--border))"
+                                        strokeOpacity={0.5}
+                                        gridType="polygon"
+                                    />
+                                    <PolarAngleAxis
+                                        dataKey="subject"
+                                        tick={renderRadarLabel}
+                                        tickLine={false}
+                                    />
                                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+
+                                    {/* Player radar */}
                                     <Radar
                                         name={profile.name}
                                         dataKey="A"
-                                        stroke="hsl(var(--primary))"
+                                        stroke="#3b82f6"
                                         strokeWidth={3}
-                                        fill="hsl(var(--primary))"
+                                        fill="url(#playerGradient)"
                                         fillOpacity={0.4}
+                                        filter="url(#radarGlow)"
                                     />
+
+                                    {/* Team Average radar */}
+                                    <Radar
+                                        name="Team Avg"
+                                        dataKey="B"
+                                        stroke="#a855f7"
+                                        strokeWidth={3}
+                                        fill="url(#teamGradient)"
+                                        fillOpacity={0.4}
+                                        filter="url(#radarGlow)"
+                                    />
+
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: 'none' }}
+                                        contentStyle={{
+                                            backgroundColor: 'hsl(var(--background))',
+                                            borderRadius: '12px',
+                                            border: '1px solid hsl(var(--border))',
+                                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)'
+                                        }}
                                         itemStyle={{ color: 'hsl(var(--foreground))' }}
                                     />
                                 </RadarChart>
                             </ResponsiveContainer>
+                        </div>
+
+                        {/* Legend */}
+                        <div className="flex flex-wrap justify-center gap-3 mt-2 z-10">
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20">
+                                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                                <span className="text-blue-400 font-medium text-xs">{profile.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20">
+                                <span className="w-2 h-2 rounded-full bg-purple-500" />
+                                <span className="text-purple-400 font-medium text-xs">Team Avg</span>
+                            </div>
+                        </div>
+
+                        {/* Comparison note */}
+                        <div className="mt-2 text-center text-xs text-muted-foreground z-10">
+                            Comparison normalized against team averages
                         </div>
                     </Card>
 

@@ -51,6 +51,7 @@ export default function DataEditorPage() {
     const [saving, setSaving] = useState<string | null>(null);
     const [lastSaved, setLastSaved] = useState<number>(0);
     const [search, setSearch] = useState("");
+    const [mounted, setMounted] = useState(false);
 
     // Add Dialog State
     const [isAddOpen, setIsAddOpen] = useState(false);
@@ -60,6 +61,11 @@ export default function DataEditorPage() {
     // Sorting and Pagination
     const { sortConfig, handleSort, sortData } = useSorting();
 
+    // Mark as mounted after initial render to prevent hydration mismatch
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     useEffect(() => {
         loadData();
     }, [mode]);
@@ -67,6 +73,7 @@ export default function DataEditorPage() {
     useEffect(() => {
         getMatches().then(setMatches).catch(console.error);
     }, []);
+
 
     // Filters
     const [opponentFilter, setOpponentFilter] = useState("");
@@ -483,7 +490,7 @@ export default function DataEditorPage() {
             </FilterPanel>
 
             {/* Data Table */}
-            <div>
+            <div className="min-h-[400px]">
                 <DataTable maxHeight="calc(100vh - 400px)">
                     <DataTableHeader sticky>
                         {mode === 'match_stats' ? (

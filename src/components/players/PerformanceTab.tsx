@@ -157,7 +157,7 @@ export function PerformanceTab({ rawMatchStats, aggregatedPlayers, uniqueOpponen
             </FilterPanel>
 
             {/* Results Table */}
-            <div>
+            <div className="min-h-[400px]">
                 <DataTable maxHeight="500px">
                     <DataTableHeader sticky>
                         <DataTableHead sortable sortKey="name" sortConfig={sortConfig} onSort={handleSort}>Player</DataTableHead>

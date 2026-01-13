@@ -44,8 +44,8 @@ interface DataTableProps {
 export function DataTable({ children, className, maxHeight = "600px" }: DataTableProps) {
     return (
         <Card className={cn("glass-card overflow-hidden", className)}>
-            <div className="overflow-auto" style={{ maxHeight }}>
-                <Table>
+            <div className="overflow-auto" style={{ maxHeight }} suppressHydrationWarning>
+                <Table suppressHydrationWarning>
                     {children}
                 </Table>
             </div>
@@ -146,7 +146,7 @@ interface DataTableBodyProps {
 
 export function DataTableBody({ children, className }: DataTableBodyProps) {
     return (
-        <TableBody className={className}>
+        <TableBody className={className} suppressHydrationWarning>
             {children}
         </TableBody>
     );
