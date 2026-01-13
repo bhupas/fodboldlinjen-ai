@@ -80,7 +80,14 @@ export default function DataEditorPage() {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [showFilters, setShowFilters] = useState(false);
+    const [playerFilter, setPlayerFilter] = useState("");
 
+    // New filter states for gym/performance stats
+    const [exerciseFilter, setExerciseFilter] = useState("");
+    const [minPR, setMinPR] = useState("");
+    const [maxPR, setMaxPR] = useState("");
+
+    // Unique lists for filters
     const uniqueOpponents = useMemo(() => {
         const opps = new Set(data.filter(d => d.match_opponent).map(d => d.match_opponent));
         return Array.from(opps).sort();
@@ -91,8 +98,40 @@ export default function DataEditorPage() {
         return Array.from(players).sort();
     }, [data]);
 
-    // Player filter state
-    const [playerFilter, setPlayerFilter] = useState("");
+    const uniqueExercises = useMemo(() => {
+        const exercises = new Set(data.filter(d => d.exercise).map(d => d.exercise));
+        return Array.from(exercises).sort();
+    }, [data]);
+
+    const uniqueFeedbackOpponents = useMemo(() => {
+        const opps = new Set(data.filter(d => d.match_opponent).map(d => d.match_opponent));
+        return Array.from(opps).sort();
+    }, [data]);
+
+    // Active filter count
+    const activeFilterCount = useMemo(() => {
+        return [
+            playerFilter,
+            opponentFilter,
+            exerciseFilter,
+            startDate,
+            endDate,
+            minPR,
+            maxPR
+        ].filter(Boolean).length;
+    }, [playerFilter, opponentFilter, exerciseFilter, startDate, endDate, minPR, maxPR]);
+
+    // Clear all filters
+    const clearAllFilters = () => {
+        setPlayerFilter("");
+        setOpponentFilter("");
+        setExerciseFilter("");
+        setStartDate("");
+        setEndDate("");
+        setMinPR("");
+        setMaxPR("");
+        handlePageChange(1);
+    };
 
     const filteredData = useMemo(() => {
         let res = [...data];
@@ -107,16 +146,27 @@ export default function DataEditorPage() {
                         row.match_opponent?.toLowerCase().includes(lowerSearch) ||
                         row.match_date?.toLowerCase().includes(lowerSearch)
                     );
-                } else {
+                } else if (mode === 'performance_stats') {
                     return (
                         row.player_name?.toLowerCase().includes(lowerSearch) ||
                         row.exercise?.toLowerCase().includes(lowerSearch)
+                    );
+                } else {
+                    return (
+                        row.player_name?.toLowerCase().includes(lowerSearch) ||
+                        row.feedback?.toLowerCase().includes(lowerSearch) ||
+                        row.match_opponent?.toLowerCase().includes(lowerSearch)
                     );
                 }
             });
         }
 
-        // Additional Filters for Match Stats
+        // Player filter (applies to all modes)
+        if (playerFilter && playerFilter !== 'all') {
+            res = res.filter(row => row.player_name === playerFilter);
+        }
+
+        // Filters for Match Stats
         if (mode === 'match_stats') {
             if (opponentFilter && opponentFilter !== 'all') {
                 res = res.filter(row => row.match_opponent === opponentFilter);
@@ -129,13 +179,42 @@ export default function DataEditorPage() {
             }
         }
 
-        // Player filter (applies to both modes)
-        if (playerFilter && playerFilter !== 'all') {
-            res = res.filter(row => row.player_name === playerFilter);
+        // Filters for Performance Stats (Gym)
+        if (mode === 'performance_stats') {
+            if (exerciseFilter && exerciseFilter !== 'all') {
+                res = res.filter(row => row.exercise === exerciseFilter);
+            }
+            if (minPR && !isNaN(Number(minPR))) {
+                const minVal = Number(minPR);
+                res = res.filter(row => {
+                    const best = Math.max(row.pr_1 || 0, row.pr_2 || 0, row.pr_3 || 0, row.pr_4 || 0);
+                    return best >= minVal;
+                });
+            }
+            if (maxPR && !isNaN(Number(maxPR))) {
+                const maxVal = Number(maxPR);
+                res = res.filter(row => {
+                    const best = Math.max(row.pr_1 || 0, row.pr_2 || 0, row.pr_3 || 0, row.pr_4 || 0);
+                    return best <= maxVal;
+                });
+            }
+        }
+
+        // Filters for Feedback
+        if (mode === 'feedback') {
+            if (opponentFilter && opponentFilter !== 'all') {
+                res = res.filter(row => row.match_opponent === opponentFilter);
+            }
+            if (startDate) {
+                res = res.filter(row => row.match_date && new Date(row.match_date) >= new Date(startDate));
+            }
+            if (endDate) {
+                res = res.filter(row => row.match_date && new Date(row.match_date) <= new Date(endDate));
+            }
         }
 
         return res;
-    }, [data, search, mode, opponentFilter, startDate, endDate, playerFilter]);
+    }, [data, search, mode, opponentFilter, startDate, endDate, playerFilter, exerciseFilter, minPR, maxPR]);
 
     // Apply sorting
     const sortedData = useMemo(() => sortData(filteredData), [filteredData, sortData]);
@@ -378,21 +457,26 @@ export default function DataEditorPage() {
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                                 <Input
-                                    placeholder="Filter by player, opponent, exercise..."
+                                    placeholder={mode === 'match_stats' ? "Search player, opponent, date..." : mode === 'performance_stats' ? "Search player or exercise..." : "Search player or feedback..."}
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
-                                    className="pl-9 h-10"
+                                    className="pl-9 pr-14 h-10"
                                 />
+                                {search && (
+                                    <button
+                                        onClick={() => setSearch('')}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-destructive hover:underline"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
                             </div>
-                            {search && (
-                                <button onClick={() => setSearch('')} className="text-xs text-destructive mt-1 hover:underline text-right w-full block">Clear</button>
-                            )}
                         </div>
 
                         {/* Table Mode Selector */}
                         <div className="w-full md:w-52">
                             <Label className="text-xs text-muted-foreground mb-2 block">Data Type</Label>
-                            <Select value={mode} onValueChange={(v: EditorTable) => { setMode(v); setSearch(""); setOpponentFilter(""); setPlayerFilter(""); handlePageChange(1); }}>
+                            <Select value={mode} onValueChange={(v: EditorTable) => { setMode(v); setSearch(""); setOpponentFilter(""); setPlayerFilter(""); setExerciseFilter(""); handlePageChange(1); }}>
                                 <SelectTrigger className="h-10">
                                     <SelectValue />
                                 </SelectTrigger>
@@ -412,8 +496,8 @@ export default function DataEditorPage() {
                         >
                             <SlidersHorizontal size={16} />
                             Filters
-                            {(opponentFilter || startDate || endDate || playerFilter) && (
-                                <Badge variant="secondary" className="ml-1 px-1 h-5 text-[10px]">!</Badge>
+                            {activeFilterCount > 0 && (
+                                <Badge variant="secondary" className="ml-1 px-1.5 h-5 text-[10px]">{activeFilterCount}</Badge>
                             )}
                         </Button>
 
@@ -435,54 +519,175 @@ export default function DataEditorPage() {
 
                     {/* Advanced Filters - Collapsible */}
                     {showFilters && (
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t animate-in slide-in-from-top-2 fade-in duration-200">
-                            {/* Player Filter - Always Available */}
-                            <div>
-                                <Label className="text-xs text-muted-foreground mb-2 block">Player</Label>
-                                <ComboSelect
-                                    options={[{ label: "All Players", value: "all" }, ...uniquePlayers.map(p => ({ label: p, value: p }))]}
-                                    value={playerFilter || "all"}
-                                    onValueChange={(val) => { setPlayerFilter(val === "all" ? "" : val); handlePageChange(1); }}
-                                    placeholder="Select player"
-                                    searchPlaceholder="Type to search..."
-                                />
+                        <div className="pt-4 border-t animate-in slide-in-from-top-2 fade-in duration-200 space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                                {/* Player Filter - Always Available */}
+                                <div>
+                                    <Label className="text-xs text-muted-foreground mb-2 block">Player</Label>
+                                    <ComboSelect
+                                        options={[{ label: "All Players", value: "all" }, ...uniquePlayers.map(p => ({ label: p, value: p }))]}
+                                        value={playerFilter || "all"}
+                                        onValueChange={(val) => { setPlayerFilter(val === "all" ? "" : val); handlePageChange(1); }}
+                                        placeholder="Select player"
+                                        searchPlaceholder="Type to search..."
+                                    />
+                                </div>
+
+                                {/* Match Stats filters */}
+                                {mode === 'match_stats' && (
+                                    <>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-2 block">Opponent</Label>
+                                            <ComboSelect
+                                                options={[{ label: "All Opponents", value: "all" }, ...uniqueOpponents.map(o => ({ label: o, value: o }))]}
+                                                value={opponentFilter || "all"}
+                                                onValueChange={(val) => { setOpponentFilter(val === "all" ? "" : val); handlePageChange(1); }}
+                                                placeholder="Select opponent"
+                                                searchPlaceholder="Type to search..."
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-2 block">From Date</Label>
+                                            <Input
+                                                type="date"
+                                                value={startDate}
+                                                onChange={(e) => { setStartDate(e.target.value); handlePageChange(1); }}
+                                                className="h-10"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-2 block">To Date</Label>
+                                            <Input
+                                                type="date"
+                                                value={endDate}
+                                                onChange={(e) => { setEndDate(e.target.value); handlePageChange(1); }}
+                                                className="h-10"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Gym/Performance Stats filters */}
+                                {mode === 'performance_stats' && (
+                                    <>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-2 block">Exercise</Label>
+                                            <ComboSelect
+                                                options={[{ label: "All Exercises", value: "all" }, ...uniqueExercises.map(e => ({ label: e, value: e }))]}
+                                                value={exerciseFilter || "all"}
+                                                onValueChange={(val) => { setExerciseFilter(val === "all" ? "" : val); handlePageChange(1); }}
+                                                placeholder="Select exercise"
+                                                searchPlaceholder="Type to search..."
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-2 block">Min PR (kg)</Label>
+                                            <Input
+                                                type="number"
+                                                placeholder="e.g. 50"
+                                                value={minPR}
+                                                onChange={(e) => { setMinPR(e.target.value); handlePageChange(1); }}
+                                                className="h-10"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-2 block">Max PR (kg)</Label>
+                                            <Input
+                                                type="number"
+                                                placeholder="e.g. 200"
+                                                value={maxPR}
+                                                onChange={(e) => { setMaxPR(e.target.value); handlePageChange(1); }}
+                                                className="h-10"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Feedback filters */}
+                                {mode === 'feedback' && (
+                                    <>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-2 block">Opponent</Label>
+                                            <ComboSelect
+                                                options={[{ label: "All Opponents", value: "all" }, ...uniqueFeedbackOpponents.map(o => ({ label: o, value: o }))]}
+                                                value={opponentFilter || "all"}
+                                                onValueChange={(val) => { setOpponentFilter(val === "all" ? "" : val); handlePageChange(1); }}
+                                                placeholder="Select opponent"
+                                                searchPlaceholder="Type to search..."
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-2 block">From Date</Label>
+                                            <Input
+                                                type="date"
+                                                value={startDate}
+                                                onChange={(e) => { setStartDate(e.target.value); handlePageChange(1); }}
+                                                className="h-10"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-2 block">To Date</Label>
+                                            <Input
+                                                type="date"
+                                                value={endDate}
+                                                onChange={(e) => { setEndDate(e.target.value); handlePageChange(1); }}
+                                                className="h-10"
+                                            />
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
-                            {/* Match Stats only filters */}
-                            {mode === 'match_stats' && (
-                                <>
-                                    {/* Opposition Filter */}
-                                    <div>
-                                        <Label className="text-xs text-muted-foreground mb-2 block">Opposition</Label>
-                                        <ComboSelect
-                                            options={[{ label: "All Opponents", value: "all" }, ...uniqueOpponents.map(o => ({ label: o, value: o }))]}
-                                            value={opponentFilter || "all"}
-                                            onValueChange={(val) => { setOpponentFilter(val === "all" ? "" : val); handlePageChange(1); }}
-                                            placeholder="Select opponent"
-                                            searchPlaceholder="Type to search..."
-                                        />
-                                    </div>
-
-                                    {/* Date Range */}
-                                    <div>
-                                        <Label className="text-xs text-muted-foreground mb-2 block">Start Date</Label>
-                                        <Input
-                                            type="date"
-                                            value={startDate}
-                                            onChange={(e) => { setStartDate(e.target.value); handlePageChange(1); }}
-                                            className="h-10"
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label className="text-xs text-muted-foreground mb-2 block">End Date</Label>
-                                        <Input
-                                            type="date"
-                                            value={endDate}
-                                            onChange={(e) => { setEndDate(e.target.value); handlePageChange(1); }}
-                                            className="h-10"
-                                        />
-                                    </div>
-                                </>
+                            {/* Active filters display & Clear button */}
+                            {activeFilterCount > 0 && (
+                                <div className="flex items-center gap-2 flex-wrap pt-2">
+                                    <span className="text-xs text-muted-foreground">Active filters:</span>
+                                    {playerFilter && (
+                                        <Badge variant="secondary" className="gap-1">
+                                            Player: {playerFilter}
+                                            <span className="cursor-pointer ml-1" onClick={() => setPlayerFilter("")}>×</span>
+                                        </Badge>
+                                    )}
+                                    {opponentFilter && (
+                                        <Badge variant="secondary" className="gap-1">
+                                            vs {opponentFilter}
+                                            <span className="cursor-pointer ml-1" onClick={() => setOpponentFilter("")}>×</span>
+                                        </Badge>
+                                    )}
+                                    {exerciseFilter && (
+                                        <Badge variant="secondary" className="gap-1">
+                                            {exerciseFilter}
+                                            <span className="cursor-pointer ml-1" onClick={() => setExerciseFilter("")}>×</span>
+                                        </Badge>
+                                    )}
+                                    {startDate && (
+                                        <Badge variant="secondary" className="gap-1">
+                                            From: {startDate}
+                                            <span className="cursor-pointer ml-1" onClick={() => setStartDate("")}>×</span>
+                                        </Badge>
+                                    )}
+                                    {endDate && (
+                                        <Badge variant="secondary" className="gap-1">
+                                            To: {endDate}
+                                            <span className="cursor-pointer ml-1" onClick={() => setEndDate("")}>×</span>
+                                        </Badge>
+                                    )}
+                                    {minPR && (
+                                        <Badge variant="secondary" className="gap-1">
+                                            Min: {minPR}kg
+                                            <span className="cursor-pointer ml-1" onClick={() => setMinPR("")}>×</span>
+                                        </Badge>
+                                    )}
+                                    {maxPR && (
+                                        <Badge variant="secondary" className="gap-1">
+                                            Max: {maxPR}kg
+                                            <span className="cursor-pointer ml-1" onClick={() => setMaxPR("")}>×</span>
+                                        </Badge>
+                                    )}
+                                    <Button variant="ghost" size="sm" className="h-6 text-xs text-destructive" onClick={clearAllFilters}>
+                                        Clear All
+                                    </Button>
+                                </div>
                             )}
                         </div>
                     )}
@@ -490,8 +695,8 @@ export default function DataEditorPage() {
             </FilterPanel>
 
             {/* Data Table */}
-            <div className="min-h-[400px]">
-                <DataTable maxHeight="calc(100vh - 400px)">
+            <div>
+                <DataTable fullHeight>
                     <DataTableHeader sticky>
                         {mode === 'match_stats' ? (
                             <>

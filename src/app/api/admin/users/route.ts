@@ -14,7 +14,49 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: 'Server misconfiguration: Missing Service Role Key' }, { status: 500 });
     }
 
-    // 2. Create Admin Client
+    // 2. Verify the requesting user is an admin
+    const cookieStore = cookies();
+    const supabaseUser = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                get(name: string) {
+                    return cookieStore.get(name)?.value
+                },
+                set(name: string, value: string, options: CookieOptions) {
+                    cookieStore.set({ name, value, ...options })
+                },
+                remove(name: string, options: CookieOptions) {
+                    cookieStore.set({ name, value: '', ...options })
+                },
+            },
+        }
+    );
+
+    const { data: { user: currentUser } } = await supabaseUser.auth.getUser();
+
+    if (!currentUser) {
+        return NextResponse.json({ error: 'Unauthorized: You must be logged in' }, { status: 401 });
+    }
+
+    // Check if current user is admin
+    const { data: profile } = await supabaseUser
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUser.id)
+        .single();
+
+    if (!profile || profile.role !== 'admin') {
+        return NextResponse.json({ error: 'Forbidden: Only administrators can delete users' }, { status: 403 });
+    }
+
+    // Prevent admin from deleting themselves
+    if (id === currentUser.id) {
+        return NextResponse.json({ error: 'You cannot delete your own account from here' }, { status: 400 });
+    }
+
+    // 3. Create Admin Client for deletion
     const { createClient } = await import('@supabase/supabase-js');
     const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,16 +69,58 @@ export async function DELETE(request: Request) {
         }
     );
 
-    // 3. Delete from Auth Users (System Level Delete)
-    // This will cascade to profiles due to the foreign key constraint
-    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+    try {
+        // 4. Manual cleanup to handle Foreign Key constraints
 
-    if (authError) {
-        console.error("Auth delete error:", authError);
-        return NextResponse.json({ error: authError.message }, { status: 500 })
+        // A. Delete AI Reports
+        await supabaseAdmin.from('ai_reports').delete().eq('user_id', id);
+
+        // B. Delete Performance Stats
+        await supabaseAdmin.from('performance_stats').delete().eq('user_id', id);
+
+        // C. Delete Matches and related Player Stats
+        // First get match IDs for this user
+        const { data: userMatches } = await supabaseAdmin
+            .from('matches')
+            .select('id')
+            .eq('user_id', id);
+
+        if (userMatches && userMatches.length > 0) {
+            const matchIds = userMatches.map(m => m.id);
+            // Delete player stats for these matches
+            await supabaseAdmin.from('player_stats').delete().in('match_id', matchIds);
+            // Delete the matches themselves
+            await supabaseAdmin.from('matches').delete().eq('user_id', id);
+        }
+
+        // D. Delete Feedback (if separate) or other tables
+        await supabaseAdmin.from('feedback').delete().eq('user_id', id).catch(() => { });
+        await supabaseAdmin.from('invitations').delete().eq('sender_id', id).catch(() => { });
+
+        // 5. Delete from profiles table (to avoid FK constraint issues)
+        const { error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .delete()
+            .eq('id', id);
+
+        if (profileError) {
+            console.error("Profile delete error:", profileError);
+            // Continue anyway - profile might not exist or have different constraints
+        }
+
+        // 6. Delete from Auth Users (System Level Delete)
+        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+
+        if (authError) {
+            console.error("Auth delete error:", authError);
+            return NextResponse.json({ error: `Failed to delete user: ${authError.message}` }, { status: 500 })
+        }
+
+        return NextResponse.json({ success: true })
+    } catch (error: any) {
+        console.error("Unexpected error during user deletion:", error);
+        return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 });
     }
-
-    return NextResponse.json({ success: true })
 }
 
 export async function GET(request: Request) {

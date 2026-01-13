@@ -39,12 +39,18 @@ interface DataTableProps {
     children: React.ReactNode;
     className?: string;
     maxHeight?: string;
+    /** When true, the table expands to full height and the page scrolls instead of the table */
+    fullHeight?: boolean;
 }
 
-export function DataTable({ children, className, maxHeight = "600px" }: DataTableProps) {
+export function DataTable({ children, className, maxHeight = "600px", fullHeight = false }: DataTableProps) {
     return (
         <Card className={cn("glass-card overflow-hidden", className)}>
-            <div className="overflow-auto" style={{ maxHeight }} suppressHydrationWarning>
+            <div
+                className={cn("overflow-x-auto", !fullHeight && "overflow-y-auto")}
+                style={fullHeight ? undefined : { maxHeight }}
+                suppressHydrationWarning
+            >
                 <Table suppressHydrationWarning>
                     {children}
                 </Table>

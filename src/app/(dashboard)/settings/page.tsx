@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Settings, User, Lock, Mail, Camera, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function SettingsPage() {
+    const router = useRouter();
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -24,6 +26,9 @@ export default function SettingsPage() {
 
     // Account State
     const [email, setEmail] = useState("");
+    const [originalEmail, setOriginalEmail] = useState("");
+    const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState("");
+    const [currentPasswordForPassword, setCurrentPasswordForPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -38,6 +43,7 @@ export default function SettingsPage() {
 
             setUser(user);
             setEmail(user.email || "");
+            setOriginalEmail(user.email || "");
 
             // Fetch profile data
             const { data: profile } = await supabase
@@ -90,21 +96,59 @@ export default function SettingsPage() {
         setSaving(true);
         setMessage(null);
 
+        // Validate current password is provided
+        if (!currentPasswordForPassword) {
+            setMessage({ text: "Please enter your current password", type: "error" });
+            setSaving(false);
+            return;
+        }
+
+        // Validate new passwords match
         if (newPassword !== confirmPassword) {
-            setMessage({ text: "Passwords do not match", type: "error" });
+            setMessage({ text: "New passwords do not match", type: "error" });
+            setSaving(false);
+            return;
+        }
+
+        // Validate password length
+        if (newPassword.length < 6) {
+            setMessage({ text: "New password must be at least 6 characters", type: "error" });
             setSaving(false);
             return;
         }
 
         try {
+            // First, verify current password by re-authenticating
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: originalEmail,
+                password: currentPasswordForPassword
+            });
+
+            if (signInError) {
+                setMessage({ text: "Current password is incorrect", type: "error" });
+                setSaving(false);
+                return;
+            }
+
+            // Now update to new password
             const { error } = await supabase.auth.updateUser({ password: newPassword });
             if (error) throw error;
-            setMessage({ text: "Password updated successfully!", type: "success" });
+
+            setMessage({ text: "Password updated successfully! Signing out...", type: "success" });
+
+            // Clear fields
+            setCurrentPasswordForPassword("");
             setNewPassword("");
             setConfirmPassword("");
+
+            // Sign out and redirect after a short delay
+            setTimeout(async () => {
+                await supabase.auth.signOut();
+                router.push("/login?message=Password updated. Please log in with your new password.");
+            }, 1500);
+
         } catch (error: any) {
             setMessage({ text: error.message, type: "error" });
-        } finally {
             setSaving(false);
         }
     };
@@ -114,13 +158,72 @@ export default function SettingsPage() {
         setSaving(true);
         setMessage(null);
 
+        // Validate current password is provided
+        if (!currentPasswordForEmail) {
+            setMessage({ text: "Please enter your current password to verify your identity", type: "error" });
+            setSaving(false);
+            return;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setMessage({ text: "Please enter a valid email address", type: "error" });
+            setSaving(false);
+            return;
+        }
+
+        // Check if email has changed
+        if (email.toLowerCase() === originalEmail.toLowerCase()) {
+            setMessage({ text: "Please enter a different email address", type: "error" });
+            setSaving(false);
+            return;
+        }
+
         try {
-            const { error } = await supabase.auth.updateUser({ email: email });
+            // First, verify current password by re-authenticating
+            // Note: This refreshes the session
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: originalEmail,
+                password: currentPasswordForEmail
+            });
+
+            if (signInError) {
+                setMessage({ text: "Current password is incorrect", type: "error" });
+                setSaving(false);
+                return;
+            }
+
+            // Now update email
+            const { error } = await supabase.auth.updateUser({
+                email: email
+            });
+
             if (error) throw error;
-            setMessage({ text: "Confirmation email sent to new address!", type: "success" });
+
+            setMessage({
+                text: "Confirmation email sent! Signing out...",
+                type: "success"
+            });
+            setCurrentPasswordForEmail("");
+
+            // Sign out and redirect after a short delay
+            setTimeout(async () => {
+                await supabase.auth.signOut();
+                router.push("/login?message=Please check your email to confirm the address change. You will need to log in again.");
+            }, 2000);
+
         } catch (error: any) {
-            setMessage({ text: error.message, type: "error" });
-        } finally {
+            // Provide more user-friendly error messages
+            let errorMessage = error.message;
+            if (error.message.includes("already registered")) {
+                errorMessage = "This email is already registered to another account";
+            } else if (error.message.includes("rate limit")) {
+                errorMessage = "Too many requests. Please wait a few minutes before trying again.";
+            } else if (error.message.includes("security purposes")) {
+                errorMessage = "For security, you need to re-login before changing your email.";
+            }
+            setMessage({ text: errorMessage, type: "error" });
             setSaving(false);
         }
     };
@@ -346,10 +449,44 @@ export default function SettingsPage() {
                         </div>
                         <form onSubmit={handleUpdateEmail} className="space-y-4 max-w-md">
                             <div className="space-y-2">
-                                <Label>Current Email</Label>
-                                <Input value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+                                <Label className="text-muted-foreground">Current Email</Label>
+                                <p className="text-sm font-medium py-2 px-3 bg-muted/50 rounded-lg border border-border">
+                                    {originalEmail}
+                                </p>
                             </div>
-                            <Button type="submit" disabled={saving} variant="outline">Update Email</Button>
+                            <div className="space-y-2">
+                                <Label htmlFor="newEmail">New Email Address</Label>
+                                <Input
+                                    id="newEmail"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="Enter new email address"
+                                    className="h-11"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="currentPasswordEmail">Current Password</Label>
+                                <Input
+                                    id="currentPasswordEmail"
+                                    type="password"
+                                    value={currentPasswordForEmail}
+                                    onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
+                                    placeholder="Enter your current password"
+                                    className="h-11"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Required to verify your identity before changing email.
+                                </p>
+                            </div>
+                            <Button
+                                type="submit"
+                                disabled={saving || email.toLowerCase() === originalEmail.toLowerCase() || !email || !currentPasswordForEmail}
+                                variant="outline"
+                            >
+                                {saving ? <Loader2 className="animate-spin mr-2" size={16} /> : null}
+                                Update Email
+                            </Button>
                         </form>
                     </Card>
 
@@ -366,27 +503,45 @@ export default function SettingsPage() {
                         </div>
                         <form onSubmit={handleUpdatePassword} className="space-y-4 max-w-md">
                             <div className="space-y-2">
+                                <Label htmlFor="currentPass">Current Password</Label>
+                                <Input
+                                    id="currentPass"
+                                    type="password"
+                                    value={currentPasswordForPassword}
+                                    onChange={(e) => setCurrentPasswordForPassword(e.target.value)}
+                                    placeholder="Enter your current password"
+                                    className="h-11"
+                                />
+                            </div>
+                            <div className="space-y-2">
                                 <Label htmlFor="newPass">New Password</Label>
                                 <Input
                                     id="newPass"
                                     type="password"
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
+                                    placeholder="Enter new password (min 6 characters)"
                                     className="h-11"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="confirmPass">Confirm Password</Label>
+                                <Label htmlFor="confirmPass">Confirm New Password</Label>
                                 <Input
                                     id="confirmPass"
                                     type="password"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder="Confirm new password"
                                     className="h-11"
                                 />
                             </div>
                             <div className="pt-2">
-                                <Button type="submit" disabled={saving || !newPassword} className="bg-primary">
+                                <Button
+                                    type="submit"
+                                    disabled={saving || !currentPasswordForPassword || !newPassword || !confirmPassword}
+                                    className="bg-primary"
+                                >
+                                    {saving ? <Loader2 className="animate-spin mr-2" size={16} /> : null}
                                     Change Password
                                 </Button>
                             </div>

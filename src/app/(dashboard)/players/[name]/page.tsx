@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { getPlayerStats } from "@/lib/services/player";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,7 @@ import Link from "next/link";
 import { FifaCard } from "@/components/players/FifaCard";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-export default function PlayerProfilePage({ params }: { params: { name: string } }) {
+function PlayerProfileContent({ params }: { params: { name: string } }) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [data, setData] = useState<any>(null);
@@ -104,42 +104,87 @@ export default function PlayerProfilePage({ params }: { params: { name: string }
 
     // Calculate FIFA Attributes (0-99 Scale)
     // Formula Explanation:
-    // PAC: Proxy via games played (stamina/activity)
-    // SHO: Weighted by Goals/Game (50%) and Conversion Rate (20%)
-    // PAS: Direct mapping from Avg Passing Accuracy
-    // DRI: Base 58 + (Assists * 4)
+    // PAC: Proxy via games played (stamina/activity) + boost from goals/assists
+    // SHO: Weighted by Goals/Game and total goals bonus
+    // PAS: Direct mapping from Avg Passing Accuracy (minimum floor for low-pass players)
+    // DRI: Base 58 + (Assists * 4) + goals bonus
     // DEF: Base 35 + (Tackles/Game * 15)
-    // PHY: Max Gym PRs converted to scale
+    // PHY: Max Gym PRs converted to scale + activity bonus
     const calculateStats = () => {
-        let sho = 45 + (totalGoals / gamesPlayed) * 50;
-        if (totalShots > 0) sho += (totalGoals / totalShots) * 20;
-        sho = Math.min(98, Math.round(sho));
+        // Elite scorer tiers - significantly boosts stats for exceptional performers
+        const isEliteScorer = totalGoals >= 50;
+        const isWorldClass = totalGoals >= 100;
+        const isLegendary = totalGoals >= 200;
 
-        let pas = Math.min(99, Math.round(profile.avgPassing || 50));
+        // Enhanced SHO calculation - rewards high goal counts significantly
+        const goalsPerGame = totalGoals / gamesPlayed;
+        let sho = 50 + Math.min(30, goalsPerGame * 10);
+        sho += Math.min(25, totalGoals * 0.15);
+        if (totalShots > 0) sho += Math.min(15, (totalGoals / totalShots) * 20);
+        if (isEliteScorer) sho += 5;
+        if (isWorldClass) sho += 5;
+        if (isLegendary) sho += 5;
+        sho = Math.min(99, Math.round(sho));
 
+        // PAS - Passing accuracy with minimum floor, boosted for elite scorers
+        let pas = Math.max(50, Math.min(99, Math.round(profile.avgPassing || 50)));
+        if (isEliteScorer) pas = Math.max(65, pas);
+        if (isWorldClass) pas = Math.max(75, pas);
+        if (isLegendary) pas = Math.max(88, pas);
+
+        // DEF - Defense rating with elite bonus
         let def = 35 + (totalTackles / gamesPlayed) * 15;
-        def = Math.min(92, Math.round(def));
+        if (isEliteScorer) def += 10;
+        if (isWorldClass) def += 10;
+        if (isLegendary) def += 10;
+        def = Math.min(95, Math.round(def));
 
-        let phy = 50;
+        // PHY - Physical with activity boost and elite bonus
+        let phy = 55;
         if (gym && gym.length > 0) {
             const maxPr = Math.max(...gym.map((g: any) => Math.max(g.pr_1 || 0, g.pr_2 || 0, g.pr_3 || 0, g.pr_4 || 0)));
-            phy = 45 + (maxPr * 0.45);
+            phy = 50 + (maxPr * 0.4);
         } else {
-            phy = 55 + (gamesPlayed * 0.5);
+            phy = 60 + (gamesPlayed * 0.3);
         }
-        phy = Math.min(95, Math.round(phy));
+        phy += Math.min(20, (totalGoals + totalAssists) * 0.04);
+        if (isEliteScorer) phy += 5;
+        if (isWorldClass) phy += 5;
+        if (isLegendary) phy += 5;
+        phy = Math.min(98, Math.round(phy));
 
-        let dri = 58 + (totalAssists * 4);
-        dri = Math.min(94, Math.round(dri));
+        // DRI - Dribbling with goals/assists bonus and elite boost
+        let dri = 60 + (totalAssists * 2);
+        dri += Math.min(20, totalGoals * 0.06);
+        if (isEliteScorer) dri += 8;
+        if (isWorldClass) dri += 8;
+        if (isLegendary) dri += 8;
+        dri = Math.min(99, Math.round(dri));
 
-        let pac = 68 + (gamesPlayed * 0.4);
-        pac = Math.min(90, Math.round(pac));
+        // PAC - Pace with activity bonus and elite boost
+        let pac = 70 + (gamesPlayed * 0.3);
+        pac += Math.min(10, (totalGoals + totalAssists) * 0.02);
+        if (isEliteScorer) pac += 5;
+        if (isWorldClass) pac += 5;
+        if (isLegendary) pac += 5;
+        pac = Math.min(97, Math.round(pac));
 
         return { pac, sho, pas, dri, def, phy };
     }
 
     const stats = calculateStats();
-    const overallRating = Math.round(Object.values(stats).reduce((a, b) => a + b, 0) / 6);
+
+    // Weighted overall rating - prioritizes offensive contributions
+    // SHO: 35%, DRI: 20%, PAC: 15%, PAS: 12%, PHY: 10%, DEF: 8%
+    const weightedRating =
+        stats.sho * 0.35 +
+        stats.dri * 0.20 +
+        stats.pac * 0.15 +
+        stats.pas * 0.12 +
+        stats.phy * 0.10 +
+        stats.def * 0.08;
+
+    const overallRating = Math.round(weightedRating);
 
     // Team Averages (simulated - in production these would come from actual team data)
     const teamAvgPassing = 75;
@@ -750,5 +795,13 @@ export default function PlayerProfilePage({ params }: { params: { name: string }
                 </TabsContent>
             </Tabs>
         </div>
+    );
+}
+
+export default function PlayerProfilePage(props: any) {
+    return (
+        <Suspense fallback={<LoadingSkeleton variant="dashboard" />}>
+            <PlayerProfileContent {...props} />
+        </Suspense>
     );
 }

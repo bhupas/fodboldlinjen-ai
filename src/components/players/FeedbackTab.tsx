@@ -10,9 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WordCloud from "@/components/dashboard/WordCloud";
-import { Search, MessageSquare, Users, Target, BarChart3, TrendingUp, SlidersHorizontal, Sparkles } from "lucide-react";
+import { Search, MessageSquare, Users, Target, BarChart3, TrendingUp, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { FeedbackEntry, FeedbackStats } from "@/lib/services/feedback";
 
 interface FeedbackTabProps {
@@ -31,15 +32,27 @@ export function FeedbackTab({ feedback, feedbackStats, feedbackPlayers, feedback
     const [selectedFeedbackOpponent, setSelectedFeedbackOpponent] = useState("all");
     const [showFilters, setShowFilters] = useState(false);
 
+    // New filter states
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [minLength, setMinLength] = useState("");
+    const [sortBy, setSortBy] = useState("newest");
+
     // Filtered feedback
     const filteredFeedback = useMemo(() => {
         let result = [...feedback];
+
+        // Player filter
         if (selectedFeedbackPlayer !== "all") {
             result = result.filter(f => f.player_name === selectedFeedbackPlayer);
         }
+
+        // Opponent filter
         if (selectedFeedbackOpponent !== "all") {
             result = result.filter(f => f.opponent === selectedFeedbackOpponent);
         }
+
+        // Search filter
         if (feedbackSearch) {
             const searchLower = feedbackSearch.toLowerCase();
             result = result.filter(f =>
@@ -47,8 +60,57 @@ export function FeedbackTab({ feedback, feedbackStats, feedbackPlayers, feedback
                 f.player_name?.toLowerCase().includes(searchLower)
             );
         }
+
+        // Date range filters
+        if (startDate) {
+            result = result.filter(f => f.match_date && new Date(f.match_date) >= new Date(startDate));
+        }
+        if (endDate) {
+            result = result.filter(f => f.match_date && new Date(f.match_date) <= new Date(endDate));
+        }
+
+        // Minimum length filter
+        if (minLength && !isNaN(Number(minLength))) {
+            result = result.filter(f => (f.feedback?.length || 0) >= Number(minLength));
+        }
+
+        // Sorting
+        switch (sortBy) {
+            case "newest":
+                result.sort((a, b) => new Date(b.match_date || 0).getTime() - new Date(a.match_date || 0).getTime());
+                break;
+            case "oldest":
+                result.sort((a, b) => new Date(a.match_date || 0).getTime() - new Date(b.match_date || 0).getTime());
+                break;
+            case "longest":
+                result.sort((a, b) => (b.feedback?.length || 0) - (a.feedback?.length || 0));
+                break;
+            case "player_asc":
+                result.sort((a, b) => (a.player_name || "").localeCompare(b.player_name || ""));
+                break;
+        }
+
         return result;
-    }, [feedback, selectedFeedbackPlayer, selectedFeedbackOpponent, feedbackSearch]);
+    }, [feedback, selectedFeedbackPlayer, selectedFeedbackOpponent, feedbackSearch, startDate, endDate, minLength, sortBy]);
+
+    // Count active filters
+    const activeFilterCount = [
+        selectedFeedbackPlayer !== "all",
+        selectedFeedbackOpponent !== "all",
+        startDate !== "",
+        endDate !== "",
+        minLength !== ""
+    ].filter(Boolean).length;
+
+    // Clear all filters
+    const clearFilters = () => {
+        setSelectedFeedbackPlayer("all");
+        setSelectedFeedbackOpponent("all");
+        setStartDate("");
+        setEndDate("");
+        setMinLength("");
+        setSortBy("newest");
+    };
 
     // Combined feedback text for wordcloud
     const feedbackText = useMemo(() => {
@@ -106,9 +168,33 @@ export function FeedbackTab({ feedback, feedbackStats, feedbackPlayers, feedback
                                     placeholder="Search in feedback content..."
                                     value={feedbackSearch}
                                     onChange={(e) => setFeedbackSearch(e.target.value)}
-                                    className="pl-9 h-10"
+                                    className="pl-9 pr-14 h-10"
                                 />
+                                {feedbackSearch && (
+                                    <button
+                                        onClick={() => setFeedbackSearch('')}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-destructive hover:underline"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
                             </div>
+                        </div>
+
+                        {/* Sort By */}
+                        <div className="w-full md:w-48">
+                            <Label className="text-xs text-muted-foreground mb-2 block">Sort By</Label>
+                            <Select value={sortBy} onValueChange={setSortBy}>
+                                <SelectTrigger className="h-10">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="newest">📅 Newest First</SelectItem>
+                                    <SelectItem value="oldest">📅 Oldest First</SelectItem>
+                                    <SelectItem value="longest">📝 Longest First</SelectItem>
+                                    <SelectItem value="player_asc">👤 Player (A-Z)</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         <Button
@@ -118,34 +204,113 @@ export function FeedbackTab({ feedback, feedbackStats, feedbackPlayers, feedback
                         >
                             <SlidersHorizontal size={16} />
                             Filters
-                            {(selectedFeedbackPlayer !== "all" || selectedFeedbackOpponent !== "all") && (
-                                <Badge variant="secondary" className="ml-1 px-1 h-5 text-[10px]">!</Badge>
+                            {activeFilterCount > 0 && (
+                                <Badge variant="secondary" className="ml-1 px-1.5 h-5 text-[10px]">{activeFilterCount}</Badge>
                             )}
                         </Button>
                     </div>
 
                     {showFilters && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t animate-in slide-in-from-top-2 fade-in duration-200">
-                            <div>
-                                <Label className="text-xs text-muted-foreground mb-2 block">Player</Label>
-                                <ComboSelect
-                                    options={[{ label: "All Players", value: "all" }, ...feedbackPlayers.map(p => ({ label: p, value: p }))]}
-                                    value={selectedFeedbackPlayer}
-                                    onValueChange={setSelectedFeedbackPlayer}
-                                    placeholder="Select player"
-                                    searchPlaceholder="Type to search..."
-                                />
+                        <div className="pt-4 border-t animate-in slide-in-from-top-2 fade-in duration-200 space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                                {/* Player Filter */}
+                                <div>
+                                    <Label className="text-xs text-muted-foreground mb-2 block">Player</Label>
+                                    <ComboSelect
+                                        options={[{ label: "All Players", value: "all" }, ...feedbackPlayers.map(p => ({ label: p, value: p }))]}
+                                        value={selectedFeedbackPlayer}
+                                        onValueChange={setSelectedFeedbackPlayer}
+                                        placeholder="Select player"
+                                        searchPlaceholder="Type to search..."
+                                    />
+                                </div>
+
+                                {/* Opponent Filter */}
+                                <div>
+                                    <Label className="text-xs text-muted-foreground mb-2 block">Opponent</Label>
+                                    <ComboSelect
+                                        options={[{ label: "All Opponents", value: "all" }, ...feedbackOpponents.map(o => ({ label: o, value: o }))]}
+                                        value={selectedFeedbackOpponent}
+                                        onValueChange={setSelectedFeedbackOpponent}
+                                        placeholder="Select opponent"
+                                        searchPlaceholder="Type to search..."
+                                    />
+                                </div>
+
+                                {/* Start Date */}
+                                <div>
+                                    <Label className="text-xs text-muted-foreground mb-2 block">From Date</Label>
+                                    <Input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="h-10"
+                                    />
+                                </div>
+
+                                {/* End Date */}
+                                <div>
+                                    <Label className="text-xs text-muted-foreground mb-2 block">To Date</Label>
+                                    <Input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="h-10"
+                                    />
+                                </div>
+
+                                {/* Min Length */}
+                                <div>
+                                    <Label className="text-xs text-muted-foreground mb-2 block">Min Length (chars)</Label>
+                                    <Input
+                                        type="number"
+                                        placeholder="e.g. 50"
+                                        value={minLength}
+                                        onChange={(e) => setMinLength(e.target.value)}
+                                        className="h-10"
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <Label className="text-xs text-muted-foreground mb-2 block">Opponent</Label>
-                                <ComboSelect
-                                    options={[{ label: "All Opponents", value: "all" }, ...feedbackOpponents.map(o => ({ label: o, value: o }))]}
-                                    value={selectedFeedbackOpponent}
-                                    onValueChange={setSelectedFeedbackOpponent}
-                                    placeholder="Select opponent"
-                                    searchPlaceholder="Type to search..."
-                                />
-                            </div>
+
+                            {/* Active filters display & Clear button */}
+                            {activeFilterCount > 0 && (
+                                <div className="flex items-center gap-2 flex-wrap pt-2">
+                                    <span className="text-xs text-muted-foreground">Active filters:</span>
+                                    {selectedFeedbackPlayer !== "all" && (
+                                        <Badge variant="secondary" className="gap-1">
+                                            Player: {selectedFeedbackPlayer}
+                                            <X size={12} className="cursor-pointer" onClick={() => setSelectedFeedbackPlayer("all")} />
+                                        </Badge>
+                                    )}
+                                    {selectedFeedbackOpponent !== "all" && (
+                                        <Badge variant="secondary" className="gap-1">
+                                            vs {selectedFeedbackOpponent}
+                                            <X size={12} className="cursor-pointer" onClick={() => setSelectedFeedbackOpponent("all")} />
+                                        </Badge>
+                                    )}
+                                    {startDate && (
+                                        <Badge variant="secondary" className="gap-1">
+                                            From: {startDate}
+                                            <X size={12} className="cursor-pointer" onClick={() => setStartDate("")} />
+                                        </Badge>
+                                    )}
+                                    {endDate && (
+                                        <Badge variant="secondary" className="gap-1">
+                                            To: {endDate}
+                                            <X size={12} className="cursor-pointer" onClick={() => setEndDate("")} />
+                                        </Badge>
+                                    )}
+                                    {minLength && (
+                                        <Badge variant="secondary" className="gap-1">
+                                            Min: {minLength} chars
+                                            <X size={12} className="cursor-pointer" onClick={() => setMinLength("")} />
+                                        </Badge>
+                                    )}
+                                    <Button variant="ghost" size="sm" className="h-6 text-xs text-destructive" onClick={clearFilters}>
+                                        Clear All
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -242,7 +407,7 @@ export function FeedbackTab({ feedback, feedbackStats, feedbackPlayers, feedback
                             All Feedback
                             <Badge className="ml-2 bg-purple-500/10 text-purple-500 border-purple-500/30">{filteredFeedback.length}</Badge>
                         </h3>
-                        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                        <div className="space-y-4">
                             {filteredFeedback.length > 0 ? (
                                 filteredFeedback.slice(0, 50).map((entry, idx) => (
                                     <div
@@ -254,7 +419,7 @@ export function FeedbackTab({ feedback, feedbackStats, feedbackPlayers, feedback
                                             <span className="font-semibold text-primary">{entry.player_name}</span>
                                             <span className="text-muted-foreground text-xs">vs</span>
                                             <Badge variant="outline" className="text-xs">{entry.opponent}</Badge>
-                                            <span className="text-muted-foreground text-xs ml-auto">{entry.date}</span>
+                                            <span className="text-muted-foreground text-xs ml-auto">{entry.match_date}</span>
                                         </div>
                                         <p className="text-sm text-foreground/80 italic">"{entry.feedback}"</p>
                                     </div>

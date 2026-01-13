@@ -11,7 +11,7 @@ interface LoadingSkeletonProps {
 export function LoadingSkeleton({ variant = 'page', className }: LoadingSkeletonProps) {
     if (variant === 'dashboard') {
         return (
-            <div className={cn("space-y-8 animate-pulse", className)}>
+            <div className={cn("space-y-8 animate-pulse", className)} suppressHydrationWarning>
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl skeleton" />
                     <div className="space-y-2">
@@ -34,7 +34,7 @@ export function LoadingSkeleton({ variant = 'page', className }: LoadingSkeleton
 
     if (variant === 'table') {
         return (
-            <div className={cn("space-y-4 animate-pulse", className)}>
+            <div className={cn("space-y-4 animate-pulse", className)} suppressHydrationWarning>
                 <div className="h-12 skeleton rounded-xl" />
                 {[...Array(5)].map((_, i) => (
                     <div key={i} className="h-16 skeleton rounded-xl" />
@@ -45,7 +45,7 @@ export function LoadingSkeleton({ variant = 'page', className }: LoadingSkeleton
 
     if (variant === 'card') {
         return (
-            <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse", className)}>
+            <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse", className)} suppressHydrationWarning>
                 {[...Array(6)].map((_, i) => (
                     <div key={i} className="h-48 skeleton rounded-2xl" />
                 ))}
@@ -55,7 +55,7 @@ export function LoadingSkeleton({ variant = 'page', className }: LoadingSkeleton
 
     // Default: page loading
     return (
-        <div className={cn("flex flex-col items-center justify-center min-h-[60vh]", className)}>
+        <div className={cn("flex flex-col items-center justify-center min-h-[60vh]", className)} suppressHydrationWarning>
             <Loader2 className="h-8 w-8 text-primary animate-spin" />
             <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
