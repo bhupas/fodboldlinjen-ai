@@ -87,9 +87,6 @@ export default function PlayerStatsPage() {
     const [showFeedbackFilters, setShowFeedbackFilters] = useState(false);
     const [sortBy, setSortBy] = useState("rating");
 
-    // Profile Map for Age
-    const [profiles, setProfiles] = useState<any[]>([]);
-
     // New Filters
     const [opponentFilter, setOpponentFilter] = useState("");
     const [startDate, setStartDate] = useState("");
@@ -116,16 +113,11 @@ export default function PlayerStatsPage() {
     useEffect(() => {
         const fetchData = async () => {
             const { getRawStats } = await import("@/lib/services/dashboard");
-            const { getAllProfiles } = await import("@/lib/services/profiles");
 
-            const [statsData, profilesData] = await Promise.all([
-                getRawStats(),
-                getAllProfiles()
-            ]);
+            const statsData = await getRawStats();
 
             setRawMatchStats(statsData.matchStats);
             setRawPerfStats(statsData.perfStats);
-            setProfiles(profilesData);
 
             // Load feedback data
             try {
@@ -217,32 +209,18 @@ export default function PlayerStatsPage() {
         let players = Array.from(playerMap.values()).map(p => {
             const gymData = gymMap.get(p.name) || [];
 
-            // Calculate Age
-            const profile = profiles.find((prof: any) => {
-                const fullName = `${prof.first_name || ''} ${prof.last_name || ''}`.trim();
-                return fullName.toLowerCase() === p.name.toLowerCase() ||
-                    (prof.first_name && prof.first_name.toLowerCase() === p.name.toLowerCase());
-            });
-
-            let age = null;
-            if (profile && profile.date_of_birth) {
-                const dob = new Date(profile.date_of_birth);
-                const diff = Date.now() - dob.getTime();
-                age = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
-            }
-
             return {
                 ...p,
                 avgPassing: p.games > 0 ? p.avgPassing / p.games : 0,
                 gymData: gymData,
                 perfCount: gymData.length,
                 maxGymPR: gymData.length > 0 ? Math.max(...gymData.map((d: any) => d.maxPR)) : 0,
-                age
+                age: null as number | null // Age not available from current data sources
             };
         });
 
         return players;
-    }, [rawMatchStats, rawPerfStats, opponentFilter, startDate, endDate, profiles]);
+    }, [rawMatchStats, rawPerfStats, opponentFilter, startDate, endDate]);
 
     const filteredPlayers = useMemo(() => {
         let res = [...aggregatedPlayers];

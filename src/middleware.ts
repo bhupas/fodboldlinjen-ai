@@ -1,71 +1,88 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+/**
+ * Authentication Middleware
+ * Protects routes and handles authentication redirects
+ */
+
+import { createServerClient } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from 'next/server';
+import { PROTECTED_PATHS, AUTH_ROUTES } from '@/lib/constants';
+
+// =============================================================================
+// MAIN MIDDLEWARE
+// =============================================================================
 
 export async function middleware(request: NextRequest) {
     let response = NextResponse.next({
         request: {
             headers: request.headers,
         },
-    })
+    });
 
+    // Create Supabase client for server-side auth
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookies: {
                 getAll() {
-                    return request.cookies.getAll()
+                    return request.cookies.getAll();
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+                    cookiesToSet.forEach(({ name, value }) =>
+                        request.cookies.set(name, value)
+                    );
                     response = NextResponse.next({
                         request,
-                    })
+                    });
                     cookiesToSet.forEach(({ name, value, options }) =>
                         response.cookies.set(name, value, options)
-                    )
+                    );
                 },
             },
         }
-    )
+    );
 
-    const { data: { user } } = await supabase.auth.getUser()
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    const pathname = request.nextUrl.pathname;
 
-    // Protected Routes - add all routes that require authentication
-    const protectedPaths = [
-        '/home',
-        '/upload',
-        '/players',
-        '/comparison',
-        '/ai',
-        '/editor',
-        '/settings',
-        '/admin'
-    ];
+    // Check if current path is protected
+    const isProtected = PROTECTED_PATHS.some((path) =>
+        pathname.startsWith(path)
+    );
 
-    const isProtected = protectedPaths.some(path => request.nextUrl.pathname.startsWith(path));
-
+    // Redirect to login if accessing protected route without auth
     if (isProtected && !user) {
-        return NextResponse.redirect(new URL('/login', request.url))
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('redirect', pathname);
+        return NextResponse.redirect(loginUrl);
     }
 
-    // Auth Routes (redirect to dashboard if logged in)
-    if (['/login', '/signup'].some(path => request.nextUrl.pathname.startsWith(path)) && user) {
-        return NextResponse.redirect(new URL('/home', request.url))
+    // Redirect to dashboard if accessing auth routes while logged in
+    const isAuthRoute = AUTH_ROUTES.some((path) =>
+        pathname.startsWith(path)
+    );
+
+    if (isAuthRoute && user) {
+        return NextResponse.redirect(new URL('/home', request.url));
     }
 
-    return response
+    return response;
 }
+
+// =============================================================================
+// MATCHER CONFIGURATION
+// =============================================================================
 
 export const config = {
     matcher: [
         /*
-         * Match all request paths except for the ones starting with:
+         * Match all request paths except for:
          * - _next/static (static files)
          * - _next/image (image optimization files)
          * - favicon.ico (favicon file)
-         * - public folder
+         * - Static assets (svg, png, jpg, etc.)
          */
         '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
-}
+};

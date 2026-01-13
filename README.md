@@ -112,6 +112,7 @@ fodboldlinjen-ai/
 │   │   │   ├── home/                # Dashboard home
 │   │   │   ├── players/             # Player list & profiles
 │   │   │   │   └── [name]/          # Individual player page
+│   │   │   ├── comparison/          # Player comparison
 │   │   │   ├── settings/            # User settings
 │   │   │   └── upload/              # CSV upload interface
 │   │   ├── api/                     # API routes
@@ -126,12 +127,25 @@ fodboldlinjen-ai/
 │   │   └── ui/                      # Reusable UI components
 │   │
 │   ├── lib/                         # Utilities & services
+│   │   ├── constants.ts             # Centralized app constants
+│   │   ├── ai-prompts.ts            # AI prompt building logic
 │   │   ├── metrics.ts               # Performance calculations
+│   │   ├── parser.ts                # Excel/CSV file parsing
+│   │   ├── utils.ts                 # Utility functions
+│   │   ├── index.ts                 # Clean exports
 │   │   ├── services/                # Data fetching services
+│   │   │   ├── index.ts             # Service exports
+│   │   │   ├── dashboard.ts         # Dashboard statistics
+│   │   │   ├── data.ts              # Data upload operations
+│   │   │   ├── editor.ts            # Data editor operations
+│   │   │   ├── feedback.ts          # Feedback queries
 │   │   │   ├── metadata.ts          # Player/match metadata
 │   │   │   ├── player.ts            # Player statistics
 │   │   │   └── reports.ts           # Report management
 │   │   └── supabase/                # Supabase client
+│   │
+│   ├── types/                       # TypeScript type definitions
+│   │   └── index.ts                 # All shared types
 │   │
 │   └── middleware.ts                # Auth middleware
 │
@@ -139,6 +153,7 @@ fodboldlinjen-ai/
 ├── .env.local                       # Environment variables (not in repo)
 └── README.md                        # This file
 ```
+
 
 ## 🚀 Getting Started
 

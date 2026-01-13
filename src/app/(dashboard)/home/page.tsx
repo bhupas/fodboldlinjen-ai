@@ -248,9 +248,46 @@ export default function DashboardPage() {
                         const maxAbsY = Math.max(...centeredData.map((p: any) => Math.abs(p.y))) * 1.2 || 10;
                         const domain = Math.max(maxAbsX, maxAbsY);
 
+                        // Premium color palette
+                        const COLORS = {
+                            totalPackage: '#10b981',      // Emerald - balanced excellence
+                            totalPackageBg: '#059669',
+                            attacker: '#f43f5e',          // Rose - offensive power
+                            attackerBg: '#e11d48',
+                            defender: '#06b6d4',          // Cyan - defensive stability
+                            defenderBg: '#0891b2',
+                            developing: '#f59e0b',        // Amber - growth potential
+                            developingBg: '#d97706',
+                            grid: 'rgba(255,255,255,0.15)',
+                            axes: 'rgba(255,255,255,0.6)'
+                        };
+
                         return (
                             <ResponsiveContainer width="100%" height="100%">
                                 <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
+                                    <defs>
+                                        {/* Gradient for Total Package quadrant */}
+                                        <linearGradient id="totalPackageGrad" x1="0" y1="1" x2="1" y2="0">
+                                            <stop offset="0%" stopColor={COLORS.totalPackage} stopOpacity={0.15} />
+                                            <stop offset="100%" stopColor={COLORS.totalPackageBg} stopOpacity={0.05} />
+                                        </linearGradient>
+                                        {/* Gradient for Attacker quadrant */}
+                                        <linearGradient id="attackerGrad" x1="1" y1="1" x2="0" y2="0">
+                                            <stop offset="0%" stopColor={COLORS.attacker} stopOpacity={0.12} />
+                                            <stop offset="100%" stopColor={COLORS.attackerBg} stopOpacity={0.03} />
+                                        </linearGradient>
+                                        {/* Gradient for Defender quadrant */}
+                                        <linearGradient id="defenderGrad" x1="0" y1="0" x2="1" y2="1">
+                                            <stop offset="0%" stopColor={COLORS.defender} stopOpacity={0.12} />
+                                            <stop offset="100%" stopColor={COLORS.defenderBg} stopOpacity={0.03} />
+                                        </linearGradient>
+                                        {/* Gradient for Developing quadrant */}
+                                        <linearGradient id="developingGrad" x1="1" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor={COLORS.developing} stopOpacity={0.1} />
+                                            <stop offset="100%" stopColor={COLORS.developingBg} stopOpacity={0.02} />
+                                        </linearGradient>
+                                    </defs>
+
                                     <XAxis
                                         type="number"
                                         dataKey="x"
@@ -273,26 +310,44 @@ export default function DashboardPage() {
                                     >
                                         <Label value="Offensive Contribution vs. Avg" angle={-90} position="left" style={{ textAnchor: 'middle' }} fontSize={11} fill="hsl(var(--muted-foreground))" />
                                     </YAxis>
-                                    <ZAxis type="number" dataKey="games" range={[60, 400]} name="Games" />
+                                    <ZAxis type="number" dataKey="games" range={[80, 500]} name="Games" />
 
-                                    <Tooltip cursor={{ strokeDasharray: '3 3' }}
+                                    <Tooltip cursor={{ strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.3)' }}
                                         content={({ active, payload }) => {
                                             if (active && payload && payload.length) {
                                                 const d = payload[0].payload;
+                                                // Determine quadrant color
+                                                let quadrantColor = COLORS.developing;
+                                                let quadrantName = 'Developing';
+                                                if (d.x > 0 && d.y > 0) { quadrantColor = COLORS.totalPackage; quadrantName = 'Total Package'; }
+                                                else if (d.x > 0 && d.y <= 0) { quadrantColor = COLORS.defender; quadrantName = 'Defensive Specialist'; }
+                                                else if (d.x <= 0 && d.y > 0) { quadrantColor = COLORS.attacker; quadrantName = 'Attacker'; }
+
                                                 return (
-                                                    <div style={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', padding: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
-                                                        <p className="font-bold text-foreground text-sm mb-1">{d.name}</p>
+                                                    <div style={{
+                                                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                                        border: `1px solid ${quadrantColor}40`,
+                                                        borderRadius: '12px',
+                                                        padding: '12px 16px',
+                                                        boxShadow: `0 8px 32px rgba(0,0,0,0.5), 0 0 20px ${quadrantColor}20`,
+                                                        backdropFilter: 'blur(8px)'
+                                                    }}>
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: quadrantColor }} />
+                                                            <p className="font-bold text-white text-sm">{d.name}</p>
+                                                        </div>
+                                                        <p className="text-xs mb-2" style={{ color: quadrantColor }}>{quadrantName}</p>
                                                         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                                                            <span className="text-muted-foreground">Defense:</span>
-                                                            <span className={d.x >= 0 ? "text-green-500" : "text-destructive"}>
+                                                            <span className="text-slate-400">Defense:</span>
+                                                            <span style={{ color: d.x >= 0 ? COLORS.totalPackage : COLORS.attacker }}>
                                                                 {d.originalDef.toFixed(1)} ({d.x >= 0 ? '+' : ''}{d.x.toFixed(1)})
                                                             </span>
-                                                            <span className="text-muted-foreground">Offense:</span>
-                                                            <span className={d.y >= 0 ? "text-green-500" : "text-destructive"}>
+                                                            <span className="text-slate-400">Offense:</span>
+                                                            <span style={{ color: d.y >= 0 ? COLORS.totalPackage : COLORS.defender }}>
                                                                 {d.originalOff.toFixed(1)} ({d.y >= 0 ? '+' : ''}{d.y.toFixed(1)})
                                                             </span>
                                                         </div>
-                                                        <p className="text-[10px] text-muted-foreground mt-2 border-t pt-1 border-border/50">{d.games} Matches Played</p>
+                                                        <p className="text-[10px] text-slate-500 mt-2 border-t pt-2 border-slate-700">{d.games} Matches Played</p>
                                                     </div>
                                                 );
                                             }
@@ -301,43 +356,50 @@ export default function DashboardPage() {
                                     />
 
                                     {/* The Cartesian Axes */}
-                                    <ReferenceLine y={0} stroke="hsl(var(--foreground))" strokeWidth={2} />
-                                    <ReferenceLine x={0} stroke="hsl(var(--foreground))" strokeWidth={2} />
+                                    <ReferenceLine y={0} stroke="rgba(255,255,255,0.4)" strokeWidth={1.5} />
+                                    <ReferenceLine x={0} stroke="rgba(255,255,255,0.4)" strokeWidth={1.5} />
 
-                                    {/* Quadrant Labels placed in the corners */}
-                                    {/* Top Right: Total Package */}
-                                    <ReferenceArea x1={0} x2={domain} y1={0} y2={domain} fill="hsl(var(--primary))" fillOpacity={0.03} />
-                                    <ReferenceArea x1={2} x2={domain} y1={2} y2={domain} fill="transparent">
-                                        <Label value="Total Package" position="center" fill="hsl(var(--primary))" fillOpacity={0.5} fontSize={16} fontWeight="bold" />
+                                    {/* Top Right: Total Package - Emerald */}
+                                    <ReferenceArea x1={0} x2={domain} y1={0} y2={domain} fill="url(#totalPackageGrad)" />
+                                    <ReferenceArea x1={domain * 0.5} x2={domain} y1={domain * 0.6} y2={domain} fill="transparent">
+                                        <Label value="Total Package" position="center" fill={COLORS.totalPackage} fontSize={14} fontWeight="bold" />
                                     </ReferenceArea>
 
-                                    {/* Bottom Right: Defensive Specialist */}
-                                    <ReferenceArea x1={0} x2={domain} y1={-domain} y2={0} fill="hsl(var(--blue-500))" fillOpacity={0.03} />
-                                    <ReferenceArea x1={2} x2={domain} y1={-domain} y2={-2} fill="transparent">
-                                        <Label value="Defensive Specialist" position="center" fill="hsl(var(--blue-500))" fillOpacity={0.4} fontSize={16} fontWeight="bold" />
+                                    {/* Bottom Right: Defensive Specialist - Cyan */}
+                                    <ReferenceArea x1={0} x2={domain} y1={-domain} y2={0} fill="url(#defenderGrad)" />
+                                    <ReferenceArea x1={domain * 0.5} x2={domain} y1={-domain} y2={-domain * 0.6} fill="transparent">
+                                        <Label value="Defender" position="center" fill={COLORS.defender} fontSize={14} fontWeight="bold" />
                                     </ReferenceArea>
 
-                                    {/* Top Left: Attacking Specialist */}
-                                    <ReferenceArea x1={-domain} x2={0} y1={0} y2={domain} fill="hsl(var(--destructive))" fillOpacity={0.03} />
-                                    <ReferenceArea x1={-domain} x2={-2} y1={2} y2={domain} fill="transparent">
-                                        <Label value="Attacker" position="center" fill="hsl(var(--destructive))" fillOpacity={0.4} fontSize={16} fontWeight="bold" />
+                                    {/* Top Left: Attacking Specialist - Rose */}
+                                    <ReferenceArea x1={-domain} x2={0} y1={0} y2={domain} fill="url(#attackerGrad)" />
+                                    <ReferenceArea x1={-domain} x2={-domain * 0.5} y1={domain * 0.6} y2={domain} fill="transparent">
+                                        <Label value="Attacker" position="center" fill={COLORS.attacker} fontSize={14} fontWeight="bold" />
                                     </ReferenceArea>
 
-                                    {/* Bottom Left: Developing */}
-                                    <ReferenceArea x1={-domain} x2={0} y1={-domain} y2={0} fill="hsl(var(--muted))" fillOpacity={0.05} />
-                                    <ReferenceArea x1={-domain} x2={-2} y1={-domain} y2={-2} fill="transparent">
-                                        <Label value="Developing" position="center" fill="hsl(var(--muted-foreground))" fillOpacity={0.3} fontSize={16} fontWeight="bold" />
+                                    {/* Bottom Left: Developing - Amber */}
+                                    <ReferenceArea x1={-domain} x2={0} y1={-domain} y2={0} fill="url(#developingGrad)" />
+                                    <ReferenceArea x1={-domain} x2={-domain * 0.5} y1={-domain} y2={-domain * 0.6} fill="transparent">
+                                        <Label value="Developing" position="center" fill={COLORS.developing} fontSize={14} fontWeight="bold" />
                                     </ReferenceArea>
 
                                     <Scatter name="Players" data={centeredData}>
                                         {centeredData.map((entry: any, index: number) => {
                                             // Dynamic coloring based on quadrant
-                                            let color = "hsl(var(--muted-foreground))";
-                                            if (entry.x > 0 && entry.y > 0) color = "hsl(var(--primary))"; // Total
-                                            else if (entry.x > 0 && entry.y <= 0) color = "hsl(var(--blue-500))"; // Def
-                                            else if (entry.x <= 0 && entry.y > 0) color = "hsl(var(--destructive))"; // Off
+                                            let color = COLORS.developing;
+                                            if (entry.x > 0 && entry.y > 0) color = COLORS.totalPackage;
+                                            else if (entry.x > 0 && entry.y <= 0) color = COLORS.defender;
+                                            else if (entry.x <= 0 && entry.y > 0) color = COLORS.attacker;
 
-                                            return <Cell key={`cell-${index}`} fill={color} stroke="hsl(var(--background))" strokeWidth={2} />;
+                                            return (
+                                                <Cell
+                                                    key={`cell-${index}`}
+                                                    fill={color}
+                                                    stroke="rgba(255,255,255,0.3)"
+                                                    strokeWidth={2}
+                                                    style={{ cursor: 'pointer' }}
+                                                />
+                                            );
                                         })}
                                     </Scatter>
                                 </ScatterChart>
