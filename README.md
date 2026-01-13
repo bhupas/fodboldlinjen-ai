@@ -19,7 +19,7 @@ Fodboldlinjen AI is a full-stack web application that helps football coaches and
 - **Player Ratings**: Advanced rating system (0-10 scale) based on multiple performance factors
 - **Historical Data**: Track trends over time with interactive visualizations
 
-### 🤖 AI-Powered Analysis (Latest: 2026-01-13)
+### 🤖 AI-Powered Analysis
 
 **AI Engine:** Google's **Gemini Flash** - Optimized for speed and cost-effectiveness while maintaining high-quality output with enhanced prompting.
 
@@ -46,21 +46,6 @@ Fodboldlinjen AI is a full-stack web application that helps football coaches and
 - Coach-specific recommendations (communication, tactics, meetings)
 - All advice is immediately actionable
 
-**Quality Assurance:**
-- ✓ Professional UEFA Pro-license coach persona
-- ✓ Concrete data-backed observations (no generic fluff)
-- ✓ Actionable tomorrow - not theoretical
-- ✓ SMART goals framework
-- ✓ Reports in Danish
-
-**What's New:**
-- 🆕 Players with only gym data now searchable
-- 🆕 Consistency ratings (High/Medium/Low variance)
-- 🆕 Individual match-by-match breakdowns (last 5 games)
-- 🆕 Team insights (top 5 performers, top scorers)
-- 🆕 Improved trend calculation (first half vs second half comparison)
-- 🆕 Enhanced generation config (temperature 0.8, 8192 token max)
-
 ### 📈 Data Visualization
 - **FIFA-Style Player Cards**: Dynamic cards with rating-based color schemes (Bronze/Silver/Gold/Special)
 - **Performance Trends**: Line charts showing rating evolution over the last 10 matches
@@ -69,10 +54,23 @@ Fodboldlinjen AI is a full-stack web application that helps football coaches and
 - **Cumulative Impact Analysis**: Track goals and assists accumulation over time
 
 ### 📝 Data Management
-- **CSV Upload**: Easy bulk import of match and training data
-- **Data Editor**: Built-in spreadsheet-like interface for data correction
+- **CSV Upload**: Easy bulk import of match and training data with detailed error feedback
+- **Data Editor**: Built-in spreadsheet-like interface with sorting, filtering, and pagination
 - **Report History**: Save and retrieve AI-generated analyses
 - **PDF Export**: Professional, print-ready reports with custom branding
+
+## 🆕 Latest Updates (2026-01-13)
+
+### UI/UX Improvements
+- ✅ **Enhanced Data Tables**: Sticky headers, sortable columns, pagination (50 rows/page)
+- ✅ **Modular Components**: Players page refactored from 1280 → 165 lines
+- ✅ **Better Upload Feedback**: Detailed error messages with row-level validation
+- ✅ **Mobile Optimization**: Improved responsiveness and navigation
+
+### Performance Enhancements
+- ✅ **Caching Strategy**: Immutable assets, stale-while-revalidate for dynamic content
+- ✅ **Lazy Loading**: Heavy components loaded on demand
+- ✅ **Code Splitting**: Smaller bundle sizes per page
 
 ## 🛠️ Tech Stack
 
@@ -85,7 +83,7 @@ Fodboldlinjen AI is a full-stack web application that helps football coaches and
   - [Radix UI](https://www.radix-ui.com/) primitives
   - [Lucide Icons](https://lucide.dev/)
 - **Charts**: [Recharts](https://recharts.org/)
-- **Data Grid**: [AG-Grid](https://www.ag-grid.com/)
+- **Data Grid**: Custom DataTable component with sorting & pagination
 
 ### Backend
 - **Database**: [Supabase](https://supabase.com/) (PostgreSQL)
@@ -108,9 +106,9 @@ fodboldlinjen-ai/
 │   ├── app/                          # Next.js App Router
 │   │   ├── (dashboard)/             # Authenticated routes
 │   │   │   ├── ai/                  # AI Analysis page
-│   │   │   ├── editor/              # Data Editor
-│   │   │   ├── home/                # Dashboard home
-│   │   │   ├── players/             # Player list & profiles
+│   │   │   ├── editor/              # Data Editor (651 lines)
+│   │   │   ├── home/                # Dashboard home (499 lines)
+│   │   │   ├── players/             # Player list (165 lines - modular!)
 │   │   │   │   └── [name]/          # Individual player page
 │   │   │   ├── comparison/          # Player comparison
 │   │   │   ├── settings/            # User settings
@@ -123,8 +121,15 @@ fodboldlinjen-ai/
 │   ├── components/                   # React components
 │   │   ├── aceternity/              # Animated backgrounds
 │   │   ├── dashboard/               # Dashboard-specific
-│   │   ├── players/                 # Player-related (FIFA cards)
+│   │   ├── players/                 # Modular player components
+│   │   │   ├── PerformanceTab.tsx   # Performance stats (243 lines)
+│   │   │   ├── GymTab.tsx           # Gym records (228 lines)
+│   │   │   ├── FeedbackTab.tsx      # Feedback analysis (258 lines)
+│   │   │   ├── InsightsTab.tsx      # Analytics charts (219 lines)
+│   │   │   └── FifaCard.tsx         # FIFA-style cards (138 lines)
 │   │   └── ui/                      # Reusable UI components
+│   │       ├── data-table.tsx       # Enhanced table with pagination
+│   │       └── ...                  # Other UI primitives
 │   │
 │   ├── lib/                         # Utilities & services
 │   │   ├── constants.ts             # Centralized app constants
@@ -132,11 +137,9 @@ fodboldlinjen-ai/
 │   │   ├── metrics.ts               # Performance calculations
 │   │   ├── parser.ts                # Excel/CSV file parsing
 │   │   ├── utils.ts                 # Utility functions
-│   │   ├── index.ts                 # Clean exports
 │   │   ├── services/                # Data fetching services
-│   │   │   ├── index.ts             # Service exports
 │   │   │   ├── dashboard.ts         # Dashboard statistics
-│   │   │   ├── data.ts              # Data upload operations
+│   │   │   ├── data.ts              # Data upload with validation
 │   │   │   ├── editor.ts            # Data editor operations
 │   │   │   ├── feedback.ts          # Feedback queries
 │   │   │   ├── metadata.ts          # Player/match metadata
@@ -151,9 +154,10 @@ fodboldlinjen-ai/
 │
 ├── public/                          # Static assets
 ├── .env.local                       # Environment variables (not in repo)
-└── README.md                        # This file
+├── README.md                        # This file
+├── AI_SYSTEM.md                     # AI system documentation
+└── LATEST_UPDATES.md                # Recent changes log
 ```
-
 
 ## 🚀 Getting Started
 
@@ -303,11 +307,17 @@ Max: 10.0
 ## 🎨 UI/UX Features
 
 - **Responsive Design**: Fully mobile-optimized with adaptive navigation
-- **Dark Mode**: Sleek dark theme optimized for extended use
+- **Dark/Light Mode**: Theme switcher in settings and landing page
 - **Glassmorphism**: Modern translucent card designs
 - **Smooth Animations**: Micro-interactions and page transitions
 - **Loading States**: Skeleton screens and spinners for better UX
 - **Dynamic FIFA Cards**: Color-coded by rating (Bronze <65, Silver 65-74, Gold 75-89, Special 90+)
+
+### Data Table Features
+- **Sticky Headers**: Headers stay visible when scrolling
+- **Sortable Columns**: Click headers to sort (asc/desc/none)
+- **Pagination**: 50 rows per page with page size options (25/50/100/200)
+- **Filter Integration**: Works seamlessly with filters
 
 ## 🔐 Authentication
 

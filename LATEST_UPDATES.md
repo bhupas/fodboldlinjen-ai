@@ -1,260 +1,301 @@
-# Latest Updates - AI System Improvements
+# Latest Updates - Fodboldlinjen AI
 
 **Date:** 2026-01-13  
-**Version:** 2.0  
+**Version:** 2.1  
 **Status:** ✅ Production Ready
-
-## 🎯 Executive Summary
-
-The AI analysis system has been significantly enhanced to provide higher quality, more actionable coaching insights. Key improvements include enhanced data collection, professional coach persona, quality requirements framework, and comprehensive player/team analytics.
-
-## 📊 Major Enhancements
-
-### 1. Enhanced Data Collection & Statistics
-
-**NEW: Consistency Metrics**
-- Performance variance calculation
-- Standard deviation analysis
-- Consistency rating (High/Medium/Low)
-
-**NEW: Advanced Trend Analysis**
-- First-half vs second-half comparison
-- Improvement rate calculation
-- Directional trends (⬆️ Rising / ➡️ Stable / ⬇️ Declining)
-
-**NEW: Comprehensive Tracking**
-- Shot conversion efficiency (goals/shots %)
-- Distance covered per match
-- Match-by-match recent form (last 5 games with full stats)
-- Best and worst match identification
-
-**NEW: Team-Level Insights**
-- Top 5 performers by average rating
-- Top 3 scorers with assists
-- Player-by-player aggregation
-
-### 2. Fixed: Player Search Issue
-
-**Problem:** Players with only gym/performance data weren't appearing in the AI analysis player search.
-
-**Solution:** Modified `/lib/services/metadata.ts` to query both `player_stats` AND `performance_stats` tables, then combine all unique player names.
-
-**Result:** All players now searchable regardless of data source! 🎉
-
-### 3. Improved AI Prompts
-
-**Professional Persona:**
-```
-UEFA Pro-license football coach with 15+ years experience in  
-Danish youth football at elite level
-```
-
-**Quality Requirements Framework:**
-- ✓ Be CONCRETE - no generic phrases
-- ✓ Use DATA - support all claims with numbers
-- ✓ Be ACTIONABLE - implementable tomorrow
-- ✓ Be POSITIVE yet honest
-- ✓ Write PROFESSIONALLY yet accessibly
-
-**Enhanced Structure:**
-- Visual separators for better AI parsing (═══, ━━━)
-- Specific format examples
-- Step-by-step exercise instructions
-- SMART goals template
-
-### 4. Better Generation Configuration
-
-```typescript
-model: "gemini-flash-latest"
-generationConfig: {
-  temperature: 0.8,      // More creative yet coherent
-  topP: 0.95,           // Nucleus sampling
-  topK: 40,             // Quality token selection
-  maxOutputTokens: 8192 // Longer, detailed reports (~6000 words)
-}
-```
-
-### 5. Enhanced Data Presentation
-
-**For Player Analysis:**
-```
-📊 Grundlæggende (Basics):
-- Matches, goals, assists, tackles, distance
-
-📈 Performance:
-- Average rating, best/worst match, consistency
-
-🎯 Seneste Form (Recent Form):
-- Match-by-match last 5 games with detailed stats
-```
-
-**For Team Analysis:**
-```
-🏆 Hold-indsigter (Team Insights):
-- Top 5 performers ranked
-- Top scorers with assists
-- Overall trends
-```
-
-**Physical Data:**
-```
-🏋️ Fysisk Performance:
-- Avg/Max/Min for each exercise
-- Number of measurements
-- Player-specific PRs
-```
-
-## 📈 Impact & Benefits
-
-### For Coaches
-- **Time Saved**: Reports generate in 2-4 seconds
-- **Better Decisions**: Data-backed insights vs gut feelings
-- **Player Development**: Specific, actionable training plans
-- **Parent Communication**: Professional reports to share
-
-### For Players
-- **Clear Goals**: SMART objectives for next matches
-- **Personal Plans**: Individual development roadmap
-- **Motivation**: See progress with concrete metrics
-- **Understanding**: Know exactly what to improve
-
-### For Teams
-- **Tactical Clarity**: Specific adjustments per match
-- **Culture Building**: Psychological insights
-- **Performance Tracking**: Consistent, objective measurement
-- **Competitive Advantage**: Professional-level analysis
-
-## 🔄 Before vs After Comparison
-
-### Data Quality
-| Aspect | Before | After |
-|--------|--------|-------|
-| Player Search | Match data only | Match + Gym data ✅ |
-| Trends | Simple average | First/second half comparison ✅ |
-| Consistency | Not measured | Variance + rating (H/M/L) ✅ |
-| Top Performers | Manual identification | Auto-ranked ✅ |
-| Match Details | Aggregated only | Match-by-match breakdown ✅ |
-
-### Report Quality
-| Aspect | Before | After |
-|--------|--------|-------|
-| Persona | Generic AI | UEFA Pro coach ✅ |
-| Specificity | General advice | Concrete examples ✅ |
-| Actionability | Theoretical | Implementable tomorrow ✅ |
-| Data Use | Mentioned | Every point backed by numbers ✅ |
-| Exercises | Mentioned | Step-by-step with success criteria ✅ |
-| Goals | General | SMART framework ✅ |
-
-## 📝 Updated Documentation
-
-### Files Updated
-1. **AI_SYSTEM.md** - Complete technical documentation
-   - Data sources & processing
-   - Analysis types explained
-   - AI prompt structure
-   - Model configuration
-   - Best practices
-
-2. **README.md** - User-facing documentation
-   - Project overview
-   - Features & capabilities
-   - Setup instructions
-   - What's new section
-
-3. **This File** - Quick reference for latest updates
-
-## 🚀 Production Deployment
-
-### Build Status
-✅ Successfully compiled  
-✅ No TypeScript errors  
-✅ All linting passed  
-✅ Ready for deployment
-
-### Performance
-- Report Generation: **2-4 seconds** (Gemini Flash)
-- Cost per Report: **~$0.001** (Flash vs $0.05 for Pro)
-- Quality: **Excellent** with enhanced prompts
-- User Satisfaction: TBD (pending user feedback)
-
-## 🎓 How to Use
-
-### For Best Results
-
-**1. Data Quality**
-- Upload minimum 3-5 matches for meaningful trends
-- Include player feedback for psychological insights
-- Add gym data for holistic analysis
-
-**2. Scope Selection**
-- **Team**: Season reviews, squad planning
-- **Match**: Post-match tactical analysis
-- **Player**: 1-on-1 development meetings
-
-**3. Analysis Type**
-- **Tactical**: Before important matches
-- **Individual**: Player development reviews
-- **Physical**: Pre-season assessments
-- **Feedback**: Team culture work
-- **General**: Parent meetings, summaries
-
-**4. Leverage Features**
-- Edit reports to add personal notes
-- Export to PDF for professional sharing
-- Save to history for later reference
-- Compare across multiple reports
-
-## 🔮 Next Steps
-
-### Immediate (Ready Now)
-- ✅ Test with real match data
-- ✅ Gather coach feedback
-- ✅ Iterate on prompt quality
-
-### Short-term (Next Sprint)
-- [ ] Multi-match comparison views
-- [ ] Expected goals (xG) integration
-- [ ] Video analysis timestamps
-- [ ] Automated weekly reports
-
-### Long-term (Roadmap)
-- [ ] Multi-language (English, Spanish)
-- [ ] Player vs player benchmarking
-- [ ] Custom prompt templates
-- [ ] Parent portal (simplified reports)
-
-## 💡 Tips & Tricks
-
-**Getting Maximum Value:**
-1. Upload data regularly (weekly)
-2. Review trends monthly
-3. Use tactical analysis before big matches
-4. Share individual reports in 1-on-1 meetings
-5. Export PDFs for parents/club management
-
-**Common Questions:**
-- **Q: Why Flash vs Pro?**  
-  A: 50x cheaper, 2x faster, quality difference minimal with enhanced prompts
-
-- **Q: How accurate are the insights?**  
-  A: Every claim is backed by your actual data - AI interprets, doesn't invent
-
-- **Q: Can I edit reports?**  
-  A: Yes! Click Edit button to customize for your specific needs
-
-- **Q: What if data is missing?**  
-  A: AI adapts - focuses on available data (e.g., gym-only for players without matches)
-
-## 📞 Support & Feedback
-
-- **Bug Reports**: Open GitHub issue
-- **Feature Requests**: Discuss with team
-- **Questions**: Check AI_SYSTEM.md technical docs
-- **Feedback**: Always welcome!
 
 ---
 
-**Status**: Ready for production use ✅  
-**Last Updated**: 2026-01-13  
-**Version**: 2.0  
-**Confidence**: High 🚀
+## 🎯 Executive Summary
+
+This update focuses on **UI/UX improvements** and **code architecture enhancements**. Key changes include modular component refactoring, enhanced data tables, improved upload feedback, and better caching strategies.
+
+---
+
+## 📊 Major Enhancements
+
+### 1. Modular Component Architecture
+
+**Problem:** Players page was 1,280 lines - difficult to maintain and debug.
+
+**Solution:** Split into focused, reusable components:
+
+| Component | Lines | Purpose |
+|-----------|-------|---------|
+| `PerformanceTab.tsx` | 243 | Player stats table with filters |
+| `GymTab.tsx` | 228 | Gym records with exercise breakdown |
+| `FeedbackTab.tsx` | 258 | Word cloud, themes, feedback list |
+| `InsightsTab.tsx` | 219 | Scatter charts and leaderboards |
+| `players/page.tsx` | 165 | Main page orchestrating tabs |
+
+**Benefits:**
+- ✅ **87% code reduction** in main page
+- ✅ Single responsibility per component
+- ✅ Easier testing and debugging
+- ✅ Better code splitting for performance
+- ✅ Reusable components for future features
+
+### 2. Enhanced Data Tables
+
+**New Features:**
+- **Sticky Headers**: Headers stay visible when scrolling large tables
+- **Sortable Columns**: Click any header to sort (asc → desc → none)
+- **Visual Indicators**: Chevrons show current sort direction
+- **Pagination**: 50 rows per page with size options (25/50/100/200)
+- **Page Info**: "Showing 1-50 of 234 results"
+
+**Components Updated:**
+- `/editor` - Data Editor page
+- `/players` - Players Performance tab
+- `data-table.tsx` - Reusable component with hooks
+
+**New Hooks:**
+```typescript
+// Sorting hook
+const { sortConfig, handleSort, sortData } = useSorting(defaultKey);
+
+// Pagination hook  
+const { page, pageSize, totalPages, handlePageChange, paginateData } = usePagination(totalItems);
+```
+
+### 3. Improved Upload Feedback
+
+**Before:** Simple "X rows failed" message.
+
+**After:** Detailed error panel with:
+- Collapsible error list per row
+- Specific error messages with hints:
+  - "Duplicate key violation" → "Use Data Editor to update"
+  - "Missing player name" → "Check row format"
+- Match context (opponent name, date)
+- Success/failure stats cards
+- File metadata display (name, size, type)
+- Progress bar during processing
+
+### 4. Caching Strategy
+
+**Implemented in `next.config.mjs`:**
+
+| Asset Type | Cache Duration | Strategy |
+|------------|----------------|----------|
+| Next.js static (`/_next/static/*`) | 1 year | Immutable (hashed filenames) |
+| Images | 1 week | Stale-while-revalidate |
+| Fonts | 1 year | Immutable |
+| API routes | No cache | Fresh data always |
+
+**Security Headers Added:**
+- `X-DNS-Prefetch-Control: on`
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: origin-when-cross-origin`
+
+---
+
+## 🏗️ Architecture Improvements
+
+### Component Structure
+
+```
+src/components/
+├── players/                    # NEW: Player-specific components
+│   ├── index.ts               # Barrel exports
+│   ├── PerformanceTab.tsx     # Stats table + filters
+│   ├── GymTab.tsx             # Gym records + breakdowns
+│   ├── FeedbackTab.tsx        # Word cloud + themes
+│   ├── InsightsTab.tsx        # Charts + leaderboards
+│   └── FifaCard.tsx           # FIFA-style player cards
+│
+├── ui/                        # ENHANCED: Reusable UI
+│   ├── data-table.tsx         # Table with sorting & pagination
+│   ├── page-header.tsx        # Consistent page headers
+│   ├── filter-panel.tsx       # Collapsible filter sections
+│   └── ...
+│
+└── dashboard/                 # Dashboard-specific
+    ├── Sidebar.tsx
+    ├── MobileBottomNav.tsx
+    └── ...
+```
+
+### Page Size Comparison
+
+| Page | Before | After | Reduction |
+|------|--------|-------|-----------|
+| `/players` | 1,280 lines | 165 lines | **87%** |
+| `/editor` | 651 lines | 651 lines | (enhanced, not split) |
+| `/upload` | 381 lines | 381 lines | (enhanced with errors) |
+
+---
+
+## 💡 Developer Guide
+
+### Using the DataTable Component
+
+```tsx
+import {
+  DataTable,
+  DataTableHeader,
+  DataTableHead,
+  DataTableBody,
+  DataTableRow,
+  DataTableCell,
+  DataTablePagination,
+  useSorting,
+  usePagination
+} from "@/components/ui/data-table";
+
+function MyTable({ data }) {
+  const { sortConfig, handleSort, sortData } = useSorting();
+  const { page, totalPages, handlePageChange, paginateData } = usePagination(data.length);
+  
+  const sortedData = sortData(data);
+  const paginatedData = paginateData(sortedData);
+
+  return (
+    <DataTable maxHeight="500px">
+      <DataTableHeader sticky>
+        <DataTableHead 
+          sortable 
+          sortKey="name" 
+          sortConfig={sortConfig} 
+          onSort={handleSort}
+        >
+          Name
+        </DataTableHead>
+      </DataTableHeader>
+      <DataTableBody>
+        {paginatedData.map(row => (
+          <DataTableRow key={row.id}>
+            <DataTableCell>{row.name}</DataTableCell>
+          </DataTableRow>
+        ))}
+      </DataTableBody>
+    </DataTable>
+  );
+}
+```
+
+### Creating Modular Tab Components
+
+```tsx
+// 1. Create focused component
+export function MyTab({ data }: MyTabProps) {
+  const [filter, setFilter] = useState("");
+  
+  const filteredData = useMemo(() => {
+    return data.filter(d => d.name.includes(filter));
+  }, [data, filter]);
+  
+  return (
+    <div className="space-y-6">
+      <StatsCards data={data} />
+      <FilterPanel />
+      <DataTable data={filteredData} />
+    </div>
+  );
+}
+
+// 2. Export from barrel file
+// components/myfeature/index.ts
+export { MyTab } from './MyTab';
+
+// 3. Use in page
+import { MyTab } from "@/components/myfeature";
+```
+
+---
+
+## 🔄 Before vs After
+
+### Data Tables
+| Aspect | Before | After |
+|--------|--------|-------|
+| Headers | Scroll away | Sticky (always visible) ✅ |
+| Sorting | Separate dropdown | Click any column ✅ |
+| Sort Feedback | None | Chevron icons ✅ |
+| Pagination | Basic prev/next | Full controls + page size ✅ |
+| Page Info | "Page 1 of 5" | "Showing 1-50 of 234" ✅ |
+
+### Upload Feedback
+| Aspect | Before | After |
+|--------|--------|-------|
+| Error Display | Count only | Per-row details ✅ |
+| Error Info | Generic | Specific with hints ✅ |
+| Progress | Hidden | Progress bar ✅ |
+| Stats | Success count | Success + Failed + Parsed ✅ |
+
+### Code Quality
+| Aspect | Before | After |
+|--------|--------|-------|
+| Players page | 1,280 lines | 165 lines ✅ |
+| Maintainability | Difficult | Easy (modular) ✅ |
+| Reusability | Low | High (components) ✅ |
+| Testing | Hard | Easy (isolated) ✅ |
+
+---
+
+## 🚀 Deployment Notes
+
+### Build Status
+```
+✅ Compiled successfully
+✅ No TypeScript errors
+✅ All linting passed
+✅ Static pages generated (22/22)
+```
+
+### Bundle Sizes
+| Page | Size | First Load JS |
+|------|------|---------------|
+| `/players` | 16.3 kB | 318 kB |
+| `/editor` | 7.73 kB | 206 kB |
+| `/upload` | 6.08 kB | 112 kB |
+| `/home` | 11.3 kB | 285 kB |
+
+---
+
+## 📝 Files Changed
+
+### New Files
+- `src/components/players/PerformanceTab.tsx`
+- `src/components/players/GymTab.tsx`
+- `src/components/players/FeedbackTab.tsx`
+- `src/components/players/InsightsTab.tsx`
+- `src/components/players/index.ts`
+
+### Modified Files
+- `src/app/(dashboard)/players/page.tsx` - Refactored to use tabs
+- `src/app/(dashboard)/editor/page.tsx` - Added sorting & pagination
+- `src/app/(dashboard)/upload/page.tsx` - Enhanced error feedback
+- `src/components/ui/data-table.tsx` - Added hooks & features
+- `src/lib/services/data.ts` - Better error messages
+- `next.config.mjs` - Caching headers
+
+### Documentation
+- `README.md` - Updated with new features
+- `AI_SYSTEM.md` - Current as of today
+- `LATEST_UPDATES.md` - This file
+
+---
+
+## 🔮 Next Steps
+
+### Immediate
+- [ ] Apply modular pattern to `/editor` page
+- [ ] Add sorting to other data tables (feedback, gym)
+- [ ] Implement keyboard navigation for tables
+
+### Short-term
+- [ ] Add column visibility toggle
+- [ ] Export table data to CSV
+- [ ] Virtual scrolling for large datasets
+
+### Long-term
+- [ ] Drag-and-drop column reordering
+- [ ] Saved filter presets
+- [ ] Real-time collaborative editing
+
+---
+
+**Status**: Production Ready ✅  
+**Last Updated**: 2026-01-13 21:40  
+**Version**: 2.1

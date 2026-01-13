@@ -27,7 +27,10 @@ import {
     DataTableRow,
     DataTableCell,
     DataTableEmpty,
-    DataTableLoading
+    DataTableLoading,
+    DataTablePagination,
+    useSorting,
+    usePagination
 } from "@/components/ui/data-table";
 import { PageHeader } from "@/components/ui/page-header";
 import { FilterPanel } from "@/components/ui/filter-panel";
@@ -37,6 +40,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { ComboSelect } from "@/components/ui/combo-select";
 import { Badge } from "@/components/ui/badge";
+
+const PAGE_SIZE = 50;
 
 export default function DataEditorPage() {
     const [mode, setMode] = useState<EditorTable>('match_stats');
@@ -51,6 +56,9 @@ export default function DataEditorPage() {
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [newRecord, setNewRecord] = useState<any>({});
     const [isCreating, setIsCreating] = useState(false);
+
+    // Sorting and Pagination
+    const { sortConfig, handleSort, sortData } = useSorting();
 
     useEffect(() => {
         loadData();
@@ -121,6 +129,13 @@ export default function DataEditorPage() {
 
         return res;
     }, [data, search, mode, opponentFilter, startDate, endDate, playerFilter]);
+
+    // Apply sorting
+    const sortedData = useMemo(() => sortData(filteredData), [filteredData, sortData]);
+
+    // Pagination
+    const { page, pageSize, totalPages, handlePageChange, handlePageSizeChange, paginateData } = usePagination(sortedData.length, PAGE_SIZE);
+    const paginatedData = useMemo(() => paginateData(sortedData), [sortedData, paginateData]);
 
     const loadData = async () => {
         setLoading(true);
@@ -318,8 +333,15 @@ export default function DataEditorPage() {
         document.body.removeChild(link);
     };
 
+    // Get column count for empty/loading states
+    const getColumnCount = () => {
+        if (mode === 'match_stats') return 11;
+        if (mode === 'performance_stats') return 7;
+        return 5;
+    };
+
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
             {/* Header Section */}
             <PageHeader
                 icon={Database}
@@ -339,7 +361,7 @@ export default function DataEditorPage() {
                 }
             />
 
-            {/* Filter Panel - Similar to Player Analysis */}
+            {/* Filter Panel */}
             <FilterPanel>
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col md:flex-row gap-4 items-end">
@@ -363,7 +385,7 @@ export default function DataEditorPage() {
                         {/* Table Mode Selector */}
                         <div className="w-full md:w-52">
                             <Label className="text-xs text-muted-foreground mb-2 block">Data Type</Label>
-                            <Select value={mode} onValueChange={(v: EditorTable) => { setMode(v); setSearch(""); setOpponentFilter(""); setPlayerFilter(""); }}>
+                            <Select value={mode} onValueChange={(v: EditorTable) => { setMode(v); setSearch(""); setOpponentFilter(""); setPlayerFilter(""); handlePageChange(1); }}>
                                 <SelectTrigger className="h-10">
                                     <SelectValue />
                                 </SelectTrigger>
@@ -413,7 +435,7 @@ export default function DataEditorPage() {
                                 <ComboSelect
                                     options={[{ label: "All Players", value: "all" }, ...uniquePlayers.map(p => ({ label: p, value: p }))]}
                                     value={playerFilter || "all"}
-                                    onValueChange={(val) => setPlayerFilter(val === "all" ? "" : val)}
+                                    onValueChange={(val) => { setPlayerFilter(val === "all" ? "" : val); handlePageChange(1); }}
                                     placeholder="Select player"
                                     searchPlaceholder="Type to search..."
                                 />
@@ -428,7 +450,7 @@ export default function DataEditorPage() {
                                         <ComboSelect
                                             options={[{ label: "All Opponents", value: "all" }, ...uniqueOpponents.map(o => ({ label: o, value: o }))]}
                                             value={opponentFilter || "all"}
-                                            onValueChange={(val) => setOpponentFilter(val === "all" ? "" : val)}
+                                            onValueChange={(val) => { setOpponentFilter(val === "all" ? "" : val); handlePageChange(1); }}
                                             placeholder="Select opponent"
                                             searchPlaceholder="Type to search..."
                                         />
@@ -440,7 +462,7 @@ export default function DataEditorPage() {
                                         <Input
                                             type="date"
                                             value={startDate}
-                                            onChange={(e) => setStartDate(e.target.value)}
+                                            onChange={(e) => { setStartDate(e.target.value); handlePageChange(1); }}
                                             className="h-10"
                                         />
                                     </div>
@@ -449,7 +471,7 @@ export default function DataEditorPage() {
                                         <Input
                                             type="date"
                                             value={endDate}
-                                            onChange={(e) => setEndDate(e.target.value)}
+                                            onChange={(e) => { setEndDate(e.target.value); handlePageChange(1); }}
                                             className="h-10"
                                         />
                                     </div>
@@ -461,103 +483,120 @@ export default function DataEditorPage() {
             </FilterPanel>
 
             {/* Data Table */}
-            < DataTable >
-                <DataTableHeader>
-                    {mode === 'match_stats' ? (
-                        <>
-                            <DataTableHead className="min-w-[150px]">Player</DataTableHead>
-                            <DataTableHead className="min-w-[130px]">Date</DataTableHead>
-                            <DataTableHead className="min-w-[150px]">Opponent</DataTableHead>
-                            <DataTableHead className="text-center w-[80px]">Mins</DataTableHead>
-                            <DataTableHead className="text-center w-[80px]">Goals</DataTableHead>
-                            <DataTableHead className="text-center w-[80px]">Assists</DataTableHead>
-                            <DataTableHead className="text-center w-[80px]">Shots</DataTableHead>
-                            <DataTableHead className="text-center w-[80px]">Passes</DataTableHead>
-                            <DataTableHead className="text-center w-[80px]">Succ. Passes</DataTableHead>
-                            <DataTableHead className="text-center w-[80px]">Tackles</DataTableHead>
-                            <DataTableHead className="w-[50px]"></DataTableHead>
-                        </>
-                    ) : mode === 'performance_stats' ? (
-                        <>
-                            <DataTableHead className="min-w-[200px]">Player</DataTableHead>
-                            <DataTableHead className="min-w-[200px]">Exercise</DataTableHead>
-                            <DataTableHead className="text-center w-[100px]">PR 1</DataTableHead>
-                            <DataTableHead className="text-center w-[100px]">PR 2</DataTableHead>
-                            <DataTableHead className="text-center w-[100px]">PR 3</DataTableHead>
-                            <DataTableHead className="text-center w-[100px]">PR 4</DataTableHead>
-                            <DataTableHead className="w-[50px]"></DataTableHead>
-                        </>
-                    ) : (
-                        <>
-                            <DataTableHead className="min-w-[150px]">Player</DataTableHead>
-                            <DataTableHead className="min-w-[130px]">Date</DataTableHead>
-                            <DataTableHead className="min-w-[150px]">Opponent</DataTableHead>
-                            <DataTableHead className="min-w-[400px]">Feedback</DataTableHead>
-                            <DataTableHead className="w-[50px]"></DataTableHead>
-                        </>
-                    )}
-                </DataTableHeader>
-                <DataTableBody>
-                    {loading ? (
-                        <DataTableLoading colSpan={mode === 'match_stats' ? 12 : mode === 'performance_stats' ? 7 : 5} />
-                    ) : filteredData.length === 0 ? (
-                        <DataTableEmpty colSpan={mode === 'match_stats' ? 12 : mode === 'performance_stats' ? 7 : 5} message="No data matches your search." />
-                    ) : (
-                        filteredData.map((row) => (
-                            <DataTableRow key={mode === 'feedback' ? row.id : mode === 'match_stats' ? `${row.match_id}-${row.player_name}` : `${row.player_name}-${row.exercise}`}>
-                                {mode === 'match_stats' ? (
-                                    <>
-                                        <EditableCell row={row} field="player_name" val={row.player_name} onUpdate={handleUpdate} className="font-medium" />
-                                        <EditableCell row={row} field="match_date" val={row.match_date} onUpdate={handleUpdate} className="text-muted-foreground text-xs" type="date" />
-                                        <EditableCell row={row} field="match_opponent" val={row.match_opponent} onUpdate={handleUpdate} className="text-muted-foreground text-xs" />
-                                        <EditableCell row={row} field="minutes_played" val={row.minutes_played} onUpdate={handleUpdate} />
-                                        <EditableCell row={row} field="goals" val={row.goals} onUpdate={handleUpdate} highlight />
-                                        <EditableCell row={row} field="assists" val={row.assists} onUpdate={handleUpdate} highlight />
-                                        <EditableCell row={row} field="total_shots" val={row.total_shots} onUpdate={handleUpdate} />
-                                        <EditableCell row={row} field="total_passes" val={row.total_passes} onUpdate={handleUpdate} />
-                                        <EditableCell row={row} field="successful_passes" val={row.successful_passes} onUpdate={handleUpdate} />
-                                        <EditableCell row={row} field="total_tackles" val={row.total_tackles} onUpdate={handleUpdate} />
-                                        <DataTableCell className="p-1">
-                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(row)} className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0">
-                                                <Trash2 size={16} />
-                                            </Button>
-                                        </DataTableCell>
-                                    </>
-                                ) : mode === 'performance_stats' ? (
-                                    <>
-                                        <EditableCell row={row} field="player_name" val={row.player_name} onUpdate={handleUpdate} className="font-medium" />
-                                        <EditableCell row={row} field="exercise" val={row.exercise} onUpdate={handleUpdate} className="text-primary font-medium" />
-                                        <EditableCell row={row} field="pr_1" val={row.pr_1} onUpdate={handleUpdate} />
-                                        <EditableCell row={row} field="pr_2" val={row.pr_2} onUpdate={handleUpdate} />
-                                        <EditableCell row={row} field="pr_3" val={row.pr_3} onUpdate={handleUpdate} />
-                                        <EditableCell row={row} field="pr_4" val={row.pr_4} onUpdate={handleUpdate} />
-                                        <DataTableCell className="p-1">
-                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(row)} className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0">
-                                                <Trash2 size={16} />
-                                            </Button>
-                                        </DataTableCell>
-                                    </>
-                                ) : (
-                                    <>
-                                        <EditableCell row={row} field="player_name" val={row.player_name} onUpdate={handleUpdate} className="font-medium" />
-                                        <EditableCell row={row} field="match_date" val={row.match_date} onUpdate={handleUpdate} className="text-muted-foreground text-xs" type="date" />
-                                        <EditableCell row={row} field="match_opponent" val={row.match_opponent} onUpdate={handleUpdate} className="text-muted-foreground text-xs" />
-                                        <EditableCell row={row} field="feedback" val={row.feedback} onUpdate={handleUpdate} className="text-left text-sm italic text-muted-foreground" />
-                                        <DataTableCell className="p-1">
-                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(row)} className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0">
-                                                <Trash2 size={16} />
-                                            </Button>
-                                        </DataTableCell>
-                                    </>
-                                )}
-                            </DataTableRow>
-                        ))
-                    )}
-                </DataTableBody>
-            </DataTable >
+            <div>
+                <DataTable maxHeight="calc(100vh - 400px)">
+                    <DataTableHeader sticky>
+                        {mode === 'match_stats' ? (
+                            <>
+                                <DataTableHead className="min-w-[150px]" sortable sortKey="player_name" sortConfig={sortConfig} onSort={handleSort}>Player</DataTableHead>
+                                <DataTableHead className="min-w-[110px]" sortable sortKey="match_date" sortConfig={sortConfig} onSort={handleSort}>Date</DataTableHead>
+                                <DataTableHead className="min-w-[130px]" sortable sortKey="match_opponent" sortConfig={sortConfig} onSort={handleSort}>Opponent</DataTableHead>
+                                <DataTableHead className="text-center w-[70px]" sortable sortKey="minutes_played" sortConfig={sortConfig} onSort={handleSort}>Mins</DataTableHead>
+                                <DataTableHead className="text-center w-[70px]" sortable sortKey="goals" sortConfig={sortConfig} onSort={handleSort}>Goals</DataTableHead>
+                                <DataTableHead className="text-center w-[70px]" sortable sortKey="assists" sortConfig={sortConfig} onSort={handleSort}>Assists</DataTableHead>
+                                <DataTableHead className="text-center w-[70px]" sortable sortKey="total_shots" sortConfig={sortConfig} onSort={handleSort}>Shots</DataTableHead>
+                                <DataTableHead className="text-center w-[70px]" sortable sortKey="total_passes" sortConfig={sortConfig} onSort={handleSort}>Passes</DataTableHead>
+                                <DataTableHead className="text-center w-[80px]" sortable sortKey="successful_passes" sortConfig={sortConfig} onSort={handleSort}>Succ.</DataTableHead>
+                                <DataTableHead className="text-center w-[70px]" sortable sortKey="total_tackles" sortConfig={sortConfig} onSort={handleSort}>Tackles</DataTableHead>
+                                <DataTableHead className="w-[50px]"></DataTableHead>
+                            </>
+                        ) : mode === 'performance_stats' ? (
+                            <>
+                                <DataTableHead className="min-w-[200px]" sortable sortKey="player_name" sortConfig={sortConfig} onSort={handleSort}>Player</DataTableHead>
+                                <DataTableHead className="min-w-[200px]" sortable sortKey="exercise" sortConfig={sortConfig} onSort={handleSort}>Exercise</DataTableHead>
+                                <DataTableHead className="text-center w-[100px]" sortable sortKey="pr_1" sortConfig={sortConfig} onSort={handleSort}>PR 1</DataTableHead>
+                                <DataTableHead className="text-center w-[100px]" sortable sortKey="pr_2" sortConfig={sortConfig} onSort={handleSort}>PR 2</DataTableHead>
+                                <DataTableHead className="text-center w-[100px]" sortable sortKey="pr_3" sortConfig={sortConfig} onSort={handleSort}>PR 3</DataTableHead>
+                                <DataTableHead className="text-center w-[100px]" sortable sortKey="pr_4" sortConfig={sortConfig} onSort={handleSort}>PR 4</DataTableHead>
+                                <DataTableHead className="w-[50px]"></DataTableHead>
+                            </>
+                        ) : (
+                            <>
+                                <DataTableHead className="min-w-[150px]" sortable sortKey="player_name" sortConfig={sortConfig} onSort={handleSort}>Player</DataTableHead>
+                                <DataTableHead className="min-w-[110px]" sortable sortKey="match_date" sortConfig={sortConfig} onSort={handleSort}>Date</DataTableHead>
+                                <DataTableHead className="min-w-[130px]" sortable sortKey="match_opponent" sortConfig={sortConfig} onSort={handleSort}>Opponent</DataTableHead>
+                                <DataTableHead className="min-w-[400px]">Feedback</DataTableHead>
+                                <DataTableHead className="w-[50px]"></DataTableHead>
+                            </>
+                        )}
+                    </DataTableHeader>
+                    <DataTableBody>
+                        {loading ? (
+                            <DataTableLoading colSpan={getColumnCount()} />
+                        ) : paginatedData.length === 0 ? (
+                            <DataTableEmpty colSpan={getColumnCount()} message="No data matches your search." />
+                        ) : (
+                            paginatedData.map((row) => (
+                                <DataTableRow key={mode === 'feedback' ? row.id : mode === 'match_stats' ? `${row.match_id}-${row.player_name}` : `${row.player_name}-${row.exercise}`}>
+                                    {mode === 'match_stats' ? (
+                                        <>
+                                            <EditableCell row={row} field="player_name" val={row.player_name} onUpdate={handleUpdate} className="font-medium text-left" />
+                                            <EditableCell row={row} field="match_date" val={row.match_date} onUpdate={handleUpdate} className="text-muted-foreground text-xs text-left" type="date" />
+                                            <EditableCell row={row} field="match_opponent" val={row.match_opponent} onUpdate={handleUpdate} className="text-muted-foreground text-xs text-left" />
+                                            <EditableCell row={row} field="minutes_played" val={row.minutes_played} onUpdate={handleUpdate} />
+                                            <EditableCell row={row} field="goals" val={row.goals} onUpdate={handleUpdate} highlight />
+                                            <EditableCell row={row} field="assists" val={row.assists} onUpdate={handleUpdate} highlight />
+                                            <EditableCell row={row} field="total_shots" val={row.total_shots} onUpdate={handleUpdate} />
+                                            <EditableCell row={row} field="total_passes" val={row.total_passes} onUpdate={handleUpdate} />
+                                            <EditableCell row={row} field="successful_passes" val={row.successful_passes} onUpdate={handleUpdate} />
+                                            <EditableCell row={row} field="total_tackles" val={row.total_tackles} onUpdate={handleUpdate} />
+                                            <DataTableCell className="p-1">
+                                                <Button variant="ghost" size="sm" onClick={() => handleDelete(row)} className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0">
+                                                    <Trash2 size={16} />
+                                                </Button>
+                                            </DataTableCell>
+                                        </>
+                                    ) : mode === 'performance_stats' ? (
+                                        <>
+                                            <EditableCell row={row} field="player_name" val={row.player_name} onUpdate={handleUpdate} className="font-medium text-left" />
+                                            <EditableCell row={row} field="exercise" val={row.exercise} onUpdate={handleUpdate} className="text-primary font-medium text-left" />
+                                            <EditableCell row={row} field="pr_1" val={row.pr_1} onUpdate={handleUpdate} />
+                                            <EditableCell row={row} field="pr_2" val={row.pr_2} onUpdate={handleUpdate} />
+                                            <EditableCell row={row} field="pr_3" val={row.pr_3} onUpdate={handleUpdate} />
+                                            <EditableCell row={row} field="pr_4" val={row.pr_4} onUpdate={handleUpdate} />
+                                            <DataTableCell className="p-1">
+                                                <Button variant="ghost" size="sm" onClick={() => handleDelete(row)} className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0">
+                                                    <Trash2 size={16} />
+                                                </Button>
+                                            </DataTableCell>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <EditableCell row={row} field="player_name" val={row.player_name} onUpdate={handleUpdate} className="font-medium text-left" />
+                                            <EditableCell row={row} field="match_date" val={row.match_date} onUpdate={handleUpdate} className="text-muted-foreground text-xs text-left" type="date" />
+                                            <EditableCell row={row} field="match_opponent" val={row.match_opponent} onUpdate={handleUpdate} className="text-muted-foreground text-xs text-left" />
+                                            <EditableCell row={row} field="feedback" val={row.feedback} onUpdate={handleUpdate} className="text-left text-sm italic text-muted-foreground" />
+                                            <DataTableCell className="p-1">
+                                                <Button variant="ghost" size="sm" onClick={() => handleDelete(row)} className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0">
+                                                    <Trash2 size={16} />
+                                                </Button>
+                                            </DataTableCell>
+                                        </>
+                                    )}
+                                </DataTableRow>
+                            ))
+                        )}
+                    </DataTableBody>
+                </DataTable>
+
+                {/* Pagination */}
+                {!loading && sortedData.length > 0 && (
+                    <Card className="glass-card mt-0 rounded-t-none border-t-0">
+                        <DataTablePagination
+                            currentPage={page}
+                            totalPages={totalPages}
+                            pageSize={pageSize}
+                            totalItems={sortedData.length}
+                            onPageChange={handlePageChange}
+                            onPageSizeChange={handlePageSizeChange}
+                            pageSizeOptions={[25, 50, 100, 200]}
+                        />
+                    </Card>
+                )}
+            </div>
 
             {/* Add Record Dialog */}
-            < Dialog open={isAddOpen} onOpenChange={setIsAddOpen} >
+            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle className="text-xl font-bold">
@@ -624,8 +663,8 @@ export default function DataEditorPage() {
                         </Button>
                     </DialogFooter>
                 </DialogContent>
-            </Dialog >
-        </div >
+            </Dialog>
+        </div>
     );
 }
 

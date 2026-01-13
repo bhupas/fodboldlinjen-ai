@@ -93,6 +93,31 @@
     @apply font-semibold tracking-tight text-foreground;
     line-height: 1.2;
   }
+
+  /* Fix date input calendar icon visibility in dark mode */
+  /* Works with .dark class OR default theme (no .light) */
+  :root:not(.light) input[type="date"]::-webkit-calendar-picker-indicator,
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+    opacity: 0.7;
+  }
+
+  :root:not(.light) input[type="date"]::-webkit-calendar-picker-indicator:hover,
+  .dark input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
+  /* Light mode - keep icons dark */
+  .light input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: none;
+    cursor: pointer;
+    opacity: 0.7;
+  }
+
+  .light input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
 }
 
 /* ========== Modern Glass Panel ========== */
@@ -342,4 +367,162 @@ a {
 
 .safe-area-top {
   padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ========================================
+   THIN SCROLLBAR
+   ======================================== */
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  @apply bg-border/50 rounded-full;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/30;
+}
+
+/* ========================================
+   LOADING STATES
+   ======================================== */
+
+.loading-dots::after {
+  content: '';
+  animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+
+  0%,
+  20% {
+    content: '';
+  }
+
+  40% {
+    content: '.';
+  }
+
+  60% {
+    content: '..';
+  }
+
+  80%,
+  100% {
+    content: '...';
+  }
+}
+
+/* Skeleton shimmer effect */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.08),
+      transparent);
+  animation: skeleton-shimmer 1.5s infinite;
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ========================================
+   INTERACTIVE STATES
+   ======================================== */
+
+.interactive {
+  @apply transition-all duration-200 cursor-pointer;
+}
+
+.interactive:hover {
+  @apply opacity-80;
+}
+
+.interactive:active {
+  @apply scale-[0.98];
+}
+
+/* ========================================
+   TOOLTIP ENHANCEMENTS
+   ======================================== */
+
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s;
+  @apply bg-popover text-popover-foreground shadow-lg border border-border;
+}
+
+[data-tooltip]:hover::before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-8px);
+}
+
+/* ========================================
+   NUMBER ANIMATIONS
+   ======================================== */
+
+.count-up {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ========================================
+   FOCUS RING IMPROVEMENTS
+   ======================================== */
+
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}
+
+/* ========================================
+   HIDE SCROLLBAR ON MOBILE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .scrollbar-thin::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-thin {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* ========================================
+   BACKDROP BLUR FALLBACK
+   ======================================== */
+
+@supports not (backdrop-filter: blur(8px)) {
+  .backdrop-blur-md {
+    background-color: hsl(var(--background) / 0.95);
+  }
 }

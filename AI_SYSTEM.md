@@ -7,18 +7,19 @@ The AI analysis system uses **Google's Gemini Flash** to generate professional c
 ## Latest Updates (2026-01-13)
 
 ### Major Enhancements
-- ✅ **Enhanced Data Collection**: Now includes consistency metrics, variance analysis, and distance tracking
+- ✅ **Enhanced Data Collection**: Consistency metrics, variance analysis, and distance tracking
 - ✅ **Player Search Fix**: Players with only gym/performance data are now searchable
 - ✅ **Match-by-Match Analysis**: Detailed recent form breakdown for individual players
 - ✅ **Team Insights**: Top performers and scorers automatically identified
 - ✅ **Improved Prompts**: Professional coach persona with quality requirements
 - ✅ **Better Generation Config**: Optimized temperature and token limits for quality reports
 
+---
+
 ## Data Sources & Processing
 
-The AI system aggregates data from multiple sources to create a comprehensive picture:
-
 ### 1. Match Statistics (`player_stats` table)
+
 **Basic Metrics:**
 - Performance ratings (0-100 scale)
 - Goals, assists, tackles
@@ -37,6 +38,7 @@ The AI system aggregates data from multiple sources to create a comprehensive pi
 - Goals + assists per match
 
 ### 2. Physical Performance (`performance_stats` table)
+
 **Gym & Fitness Data:**
 - Exercise-specific PRs (Personal Records)
 - Sprint times
@@ -50,12 +52,15 @@ The AI system aggregates data from multiple sources to create a comprehensive pi
 - Player-specific PRs
 
 ### 3. Enriched Analytics
+
 **Advanced Calculations:**
 - Performance trend direction (⬆️ Rising / ➡️ Stable / ⬇️ Declining)
 - Improvement rate (point change between first and second half of recent matches)
 - Top performers ranking (by average rating)
 - Top scorers ranking (by goals + assists)
 - Match-by-match recent form (last 5 matches with detailed stats)
+
+---
 
 ## Analysis Scopes
 
@@ -101,9 +106,9 @@ The AI system aggregates data from multiple sources to create a comprehensive pi
 - Progress tracking
 - Contract/scholarship evaluations
 
-## Analysis Types
+---
 
-Each analysis type uses a specialized prompt to focus the AI's attention:
+## Analysis Types
 
 ### 1. General Overview (Balanced)
 **Focus Areas:**
@@ -122,14 +127,14 @@ Each analysis type uses a specialized prompt to focus the AI's attention:
 - Pressing strategy (where/when to press)
 - Transitions (timing and execution details)
 - Space utilization (concrete running patterns)
-- Line coordination (goalkeeper distribution, wing play, etc.)
+- Line coordination (goalkeeper distribution, wing play)
 - Match-specific adjustments
 
 **Best For:** Pre-match preparation, tactical reviews, coaching staff meetings
 
 ### 3. Individual Development
 **Focus Areas:**
-- Technical skills (specific foot work, first touch, etc.)
+- Technical skills (specific footwork, first touch)
 - Physical aspects (with gym numbers if available)
 - Mental aspects (decision-making under pressure)
 - Positional understanding (where to be in different phases)
@@ -160,6 +165,8 @@ Each analysis type uses a specialized prompt to focus the AI's attention:
 
 **Best For:** Team culture assessment, mental coaching, conflict resolution
 
+---
+
 ## AI Prompt Structure
 
 ### Professional Persona
@@ -170,8 +177,6 @@ physical training, sports psychology, and talent development.
 ```
 
 ### Data Context Template
-
-The AI receives data in a structured, professional format:
 
 ```markdown
 ═══════════════════════════════════════════════════════════════
@@ -238,8 +243,6 @@ Top Scorers:
 
 ### Output Structure Requirements
 
-The AI is instructed to create reports with this exact structure:
-
 ```markdown
 ## 🎯 Hovedkonklusioner (Main Conclusions)
 [3-5 SHARP observations using CONCRETE NUMBERS]
@@ -281,8 +284,6 @@ Include mix of:
 
 ### Quality Requirements
 
-Every report must meet these standards:
-
 ```markdown
 ═══════════════════════════════════════════════════════════════
 **QUALITY REQUIREMENTS:**
@@ -294,6 +295,8 @@ Every report must meet these standards:
 ✓ Use correct Markdown formatting
 ═══════════════════════════════════════════════════════════════
 ```
+
+---
 
 ## Model Configuration
 
@@ -321,6 +324,8 @@ generationConfig: {
 - Pro model would provide slightly more nuanced analysis
 - Flash is optimized for speed over depth
 - Our enhanced prompts compensate for this difference
+
+---
 
 ## Error Handling
 
@@ -352,6 +357,8 @@ generationConfig: {
 ```
 **Solution:** Check API key, verify data format, retry
 
+---
+
 ## Performance Optimizations
 
 ### Data Efficiency
@@ -370,6 +377,8 @@ generationConfig: {
 - Input prompt: ~2000-4000 tokens (depending on data volume)
 - Output limit: 8192 tokens (~6000 words)
 - Total context: Well within Flash's 1M token limit
+
+---
 
 ## Best Practices for Users
 
@@ -421,6 +430,8 @@ generationConfig: {
 - Plan adjustments for next match
 - Individual player contributions in context
 
+---
+
 ## Integration Points
 
 ### Frontend (`/app/(dashboard)/ai/page.tsx`)
@@ -440,9 +451,11 @@ generationConfig: {
 - Error handling and validation
 
 ### Data Services
-- `/lib/services/metadata.ts`: Player/match listings (now includes gym players!)
+- `/lib/services/metadata.ts`: Player/match listings (includes gym players!)
 - `/lib/services/reports.ts`: Report CRUD operations
 - `/lib/metrics.ts`: Performance calculations (enriched stats)
+
+---
 
 ## Future Enhancements
 
@@ -458,200 +471,25 @@ generationConfig: {
 - [ ] Report sharing with parents (simplified version)
 - [ ] Integration with training attendance
 
-- Conditioning and endurance
-- Strength and explosiveness (gym data-based)
-- Mental strength and focus
-- Communication and leadership
-- Pressure handling
-- Correlation between physical fitness and match performance
-
-### 5. Feedback & Psychology
-Analyzes:
-- Main themes in player feedback
-- Recurring challenges
-- Motivation and mentality
-- Player-identified improvement points
-- Psychological insights
-
-## AI Prompt Structure
-
-### Data Context Provided
-
-```
-📊 Quantitative Key Metrics:
-- Number of matches analyzed
-- Average performance rating (0-100)
-- Passing precision percentage
-- Shot frequency per player/match
-- Press intensity percentage
-- Defensive work rate percentage
-- Trend (last 5 matches): Rising/Falling
-
-⚽ Individual Player Statistics: (for player scope)
-- Matches played
-- Goals (total and per match)
-- Assists (total and per match)
-- Tackles (total and per match)
-- Best match rating
-- Worst match rating
-
-🏋️ Physical Performance:
-- Exercise-specific averages and maxes
-- Number of measurements
-- Units (kg for weights, seconds for runs)
-
-💭 Player Feedback:
-- Aggregated feedback text (up to 1000 characters)
-```
-
-### Output Structure Template
-
-The AI is instructed to generate reports in Danish with this structure:
-
-```markdown
-## 🎯 Hovedkonklusioner (Main Conclusions)
-3-5 sharp observations based on available data. Be specific and use numbers.
-
-## 💪 Styrker at Bygge På (Strengths to Build On)
-Concrete strengths with data backing. Explain WHY it's a strength.
-
-## ⚠️ Kritiske Udviklingsområder (Critical Development Areas)
-Specific weaknesses that MUST be addressed. Prioritize by importance.
-
-## 🏃 Træningsplan (Training Plan - Next 2 Weeks)
-5-7 concrete exercises and focus points. Include:
-- Tactical exercises
-- Technical training
-- Physical training (based on gym data if available)
-- Mental training
-Describe HOW each exercise is performed.
-
-## 📈 Målsætninger for Næste 3 Kampe/Tests (Goals for Next 3 Matches/Tests)
-Specific, measurable goals using SMART principles:
-- Specific
-- Measurable
-- Achievable
-- Relevant
-- Time-bound
-
-## 💡 Anbefalinger til Træneren (Recommendations for the Coach)
-Concrete advice on coaching approach, communication, and tactical choices
-```
-
-## Model Configuration
-
-```javascript
-model: "gemini-1.5-pro"
-generationConfig: {
-  temperature: 0.7,      // Balance between creativity and consistency
-  topK: 40,              // Consider top 40 tokens
-  topP: 0.95,            // Nucleus sampling threshold
-  maxOutputTokens: 4096, // Maximum report length
-}
-```
-
-### Why Gemini 1.5 Pro?
-
-- **Better reasoning**: Superior tactical analysis compared to Flash
-- **Longer context**: Can handle more data points
-- **Danish language**: Better fluency in Danish
-- **Structured output**: More consistent markdown formatting
-- **Nuanced analysis**: Better understanding of football tactics
-
-## Error Handling
-
-### No Data Scenarios
-
-1. **No match data but gym data exists**
-   - System adjusts prompt to focus exclusively on physical development
-   - Warning indicator added to prompt
-
-2. **Player not found**
-   - Now fixed: System queries both `player_stats` and `performance_stats`
-   - All players searchable regardless of data type
-
-3. **API failures**
-   - Error message displayed to user
-   - Retry functionality available
-
-## Performance Optimizations
-
-1. **Data filtering**: Only relevant data sent to AI
-2. **Prompt optimization**: Structured for clarity and efficiency
-3. **Caching**: Report history saved to database for instant retrieval
-4. **Async processing**: Non-blocking API calls
-
-## Best Practices for Users
-
-### Getting Quality Analysis
-
-1. **Upload comprehensive data**
-   - More matches = better trend analysis
-   - Include player feedback for psychological insights
-   - Upload gym data for holistic view
-
-2. **Choose appropriate scope**
-   - Team: For season reviews or squad planning
-   - Match: For post-match tactical analysis
-   - Player: For individual development meetings
-
-3. **Select analysis type based on need**
-   - Tactical: Before important matches
-   - Individual: For player development reviews
-   - Physical: During pre-season or recovery periods
-   - Feedback: For team culture assessment
-
-4. **Review and edit**
-   - AI reports are editable
-   - Add coach's personal notes
-   - Customize for specific audience
-
-## Integration Points
-
-### Frontend (AI Page)
-- `/app/(dashboard)/ai/page.tsx`
-- Handles user input and report display
-- Manages report history
-- Provides PDF export functionality
-
-### API Endpoint
-- `/app/api/ai-report/route.ts`
-- Fetches data from Supabase
-- Constructs prompts
-- Calls Gemini AI
-- Returns formatted report
-
-### Data Services
-- `/lib/services/metadata.ts`: Player/match listings
-- `/lib/services/reports.ts`: Report CRUD operations
-- `/lib/metrics.ts`: Performance calculations
-
-## Future Enhancements
-
-- [ ] Multi-match comparison
-- [ ] Season-long trend analysis
-- [ ] Player vs player comparison
-- [ ] Expected goals (xG) integration
-- [ ] Video timestamp references
-- [ ] Automated weekly reports
-- [ ] Custom prompt templates
-- [ ] Multi-language support
+---
 
 ## Troubleshooting
 
 ### Common Issues
 
 **Issue**: Player not appearing in search
-**Solution**: Now fixed - system queries both tables
+**Solution**: Fixed - system queries both `player_stats` and `performance_stats` tables
 
 **Issue**: Generic AI responses
 **Solution**: Ensure sufficient data uploaded (minimum 2-3 matches recommended)
 
 **Issue**: API timeout
-**Solution**: Pro model might take 5-10 seconds - this is normal
+**Solution**: Flash model might take 2-4 seconds - this is normal
 
 **Issue**: Report not saving
 **Solution**: Check browser console and verify Supabase connection
+
+---
 
 ## Monitoring
 
