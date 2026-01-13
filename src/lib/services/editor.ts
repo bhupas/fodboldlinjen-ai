@@ -1,7 +1,7 @@
 
 import { supabase } from '@/lib/supabase/client';
 
-export type EditorTable = 'match_stats' | 'performance_stats';
+export type EditorTable = 'match_stats' | 'performance_stats' | 'feedback';
 
 export const getEditableData = async (table: EditorTable) => {
     if (table === 'match_stats') {
@@ -19,7 +19,7 @@ export const getEditableData = async (table: EditorTable) => {
             match_date: row.matches?.date,
             match_opponent: row.matches?.opponent
         }));
-    } else {
+    } else if (table === 'performance_stats') {
         const { data, error } = await supabase
             .from('performance_stats')
             .select('*')
@@ -27,6 +27,22 @@ export const getEditableData = async (table: EditorTable) => {
 
         if (error) throw error;
         return data;
+    } else {
+        // Feedback
+        const { data, error } = await supabase
+            .from('feedback')
+            .select(`
+                *,
+                matches ( date, opponent )
+            `)
+            .order('matches(date)', { ascending: false });
+
+        if (error) throw error;
+        return data.map((row: any) => ({
+            ...row,
+            match_date: row.matches?.date,
+            match_opponent: row.matches?.opponent
+        }));
     }
 };
 
@@ -47,6 +63,16 @@ export const updatePerformanceStat = async (player_name: string, exercise: strin
         .update(updates)
         .eq('player_name', player_name)
         .eq('exercise', exercise);
+
+    if (error) throw error;
+    return true;
+};
+
+export const updateFeedback = async (id: string, updates: any) => {
+    const { error } = await supabase
+        .from('feedback')
+        .update(updates)
+        .eq('id', id);
 
     if (error) throw error;
     return true;
@@ -74,6 +100,16 @@ export const deletePerformanceStat = async (player_name: string, exercise: strin
     return true;
 };
 
+export const deleteFeedback = async (id: string) => {
+    const { error } = await supabase
+        .from('feedback')
+        .delete()
+        .eq('id', id);
+
+    if (error) throw error;
+    return true;
+};
+
 export const createMatchStat = async (match_id: string, player_name: string, initialData: any = {}) => {
     const { error } = await supabase
         .from('player_stats')
@@ -94,6 +130,19 @@ export const createPerformanceStat = async (player_name: string, exercise: strin
             player_name,
             exercise,
             ...initialData
+        });
+
+    if (error) throw error;
+    return true;
+};
+
+export const createFeedback = async (match_id: string, player_name: string, feedback: string) => {
+    const { error } = await supabase
+        .from('feedback')
+        .insert({
+            match_id,
+            player_name,
+            feedback
         });
 
     if (error) throw error;

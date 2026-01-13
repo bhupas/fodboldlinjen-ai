@@ -5,11 +5,14 @@ import {
     getEditableData,
     updateMatchStat,
     updatePerformanceStat,
+    updateFeedback,
     updateMatch,
     createMatchStat,
     createPerformanceStat,
+    createFeedback,
     deleteMatchStat,
     deletePerformanceStat,
+    deleteFeedback,
     getMatches,
     EditorTable
 } from "@/lib/services/editor";
@@ -28,7 +31,7 @@ import {
 } from "@/components/ui/data-table";
 import { PageHeader } from "@/components/ui/page-header";
 import { FilterPanel } from "@/components/ui/filter-panel";
-import { Loader2, CheckCircle, Database, Search, Plus, Trash2, SlidersHorizontal } from "lucide-react";
+import { Loader2, CheckCircle, Database, Search, Plus, Trash2, SlidersHorizontal, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -68,6 +71,14 @@ export default function DataEditorPage() {
         return Array.from(opps).sort();
     }, [data]);
 
+    const uniquePlayers = useMemo(() => {
+        const players = new Set(data.filter(d => d.player_name).map(d => d.player_name));
+        return Array.from(players).sort();
+    }, [data]);
+
+    // Player filter state
+    const [playerFilter, setPlayerFilter] = useState("");
+
     const filteredData = useMemo(() => {
         let res = [...data];
 
@@ -103,8 +114,13 @@ export default function DataEditorPage() {
             }
         }
 
+        // Player filter (applies to both modes)
+        if (playerFilter && playerFilter !== 'all') {
+            res = res.filter(row => row.player_name === playerFilter);
+        }
+
         return res;
-    }, [data, search, mode, opponentFilter, startDate, endDate]);
+    }, [data, search, mode, opponentFilter, startDate, endDate, playerFilter]);
 
     const loadData = async () => {
         setLoading(true);
@@ -124,15 +140,21 @@ export default function DataEditorPage() {
         try {
             if (mode === 'match_stats') {
                 await deleteMatchStat(row.match_id, row.player_name);
-            } else {
+            } else if (mode === 'performance_stats') {
                 await deletePerformanceStat(row.player_name, row.exercise);
+            } else {
+                await deleteFeedback(row.id);
             }
             // Remove locally
-            setData(prev => prev.filter(r =>
-                mode === 'match_stats'
-                    ? (r.match_id !== row.match_id || r.player_name !== row.player_name)
-                    : (r.player_name !== row.player_name || r.exercise !== row.exercise)
-            ));
+            setData(prev => prev.filter(r => {
+                if (mode === 'match_stats') {
+                    return r.match_id !== row.match_id || r.player_name !== row.player_name;
+                } else if (mode === 'performance_stats') {
+                    return r.player_name !== row.player_name || r.exercise !== row.exercise;
+                } else {
+                    return r.id !== row.id;
+                }
+            }));
         } catch (err) {
             alert("Failed to delete record");
             console.error(err);
@@ -148,12 +170,18 @@ export default function DataEditorPage() {
                     return;
                 }
                 await createMatchStat(newRecord.match_id, newRecord.player_name, newRecord);
-            } else {
+            } else if (mode === 'performance_stats') {
                 if (!newRecord.player_name || !newRecord.exercise) {
                     alert("Player Name and Exercise are required");
                     return;
                 }
                 await createPerformanceStat(newRecord.player_name, newRecord.exercise, newRecord);
+            } else {
+                if (!newRecord.match_id || !newRecord.player_name || !newRecord.feedback) {
+                    alert("Match, Player Name, and Feedback are required");
+                    return;
+                }
+                await createFeedback(newRecord.match_id, newRecord.player_name, newRecord.feedback);
             }
             setIsAddOpen(false);
             setNewRecord({});
@@ -169,11 +197,15 @@ export default function DataEditorPage() {
     const handleUpdate = async (row: any, field: string, value: string) => {
         // Optimistic update logic
         const newData = [...data];
-        const rowIndex = newData.findIndex(r =>
-            mode === 'match_stats'
-                ? (r.match_id === row.match_id && r.player_name === row.player_name)
-                : (r.player_name === row.player_name && r.exercise === row.exercise)
-        );
+        const rowIndex = newData.findIndex(r => {
+            if (mode === 'match_stats') {
+                return r.match_id === row.match_id && r.player_name === row.player_name;
+            } else if (mode === 'performance_stats') {
+                return r.player_name === row.player_name && r.exercise === row.exercise;
+            } else {
+                return r.id === row.id;
+            }
+        });
 
         if (rowIndex === -1) return;
 
@@ -199,20 +231,22 @@ export default function DataEditorPage() {
 
         setData(newData);
 
-        const key = `${mode === 'match_stats' ? row.match_id : row.player_name}-${field}`;
+        const key = mode === 'feedback' ? `${row.id}-${field}` : `${mode === 'match_stats' ? row.match_id : row.player_name}-${field}`;
         setSaving(key);
 
         try {
-            if (mode === 'match_stats') {
+            if ((mode === 'match_stats' || mode === 'feedback') && (field === 'match_date' || field === 'match_opponent')) {
                 if (field === 'match_date') {
                     await updateMatch(row.match_id, { date: value });
-                } else if (field === 'match_opponent') {
-                    await updateMatch(row.match_id, { opponent: value });
                 } else {
-                    await updateMatchStat(row.match_id, row.player_name, { [field]: finalValue });
+                    await updateMatch(row.match_id, { opponent: value });
                 }
-            } else {
+            } else if (mode === 'match_stats') {
+                await updateMatchStat(row.match_id, row.player_name, { [field]: finalValue });
+            } else if (mode === 'performance_stats') {
                 await updatePerformanceStat(row.player_name, row.exercise, { [field]: finalValue });
+            } else {
+                await updateFeedback(row.id, { [field]: finalValue });
             }
             setLastSaved(Date.now());
         } catch (err) {
@@ -222,6 +256,68 @@ export default function DataEditorPage() {
         }
     };
 
+    // Export functionality - exports filtered data based on current filters
+    const handleExport = () => {
+        if (filteredData.length === 0) {
+            alert("No data to export");
+            return;
+        }
+
+        let headers: string[];
+        let rows: any[][];
+        let filename: string;
+
+        if (mode === 'match_stats') {
+            headers = ["Player", "Match", "Opponent", "Date", "Passing %", "Distance (km)", "Tackles", "Yellow Cards", "Red Cards", "Goals", "Assists", "Minutes"];
+            rows = filteredData.map(row => [
+                row.player_name || "",
+                row.match_name || "",
+                row.match_opponent || "",
+                row.match_date || "",
+                row.passing_pct || "",
+                row.distance_km || "",
+                row.tackles || "",
+                row.yellow_cards || "0",
+                row.red_cards || "0",
+                row.goals || "0",
+                row.assists || "0",
+                row.minutes_played || ""
+            ]);
+            filename = `match_stats_export_${new Date().toISOString().slice(0, 10)}.csv`;
+        } else if (mode === 'performance_stats') {
+            headers = ["Player", "Exercise", "Personal Record", "Date"];
+            rows = filteredData.map(row => [
+                row.player_name || "",
+                row.exercise || "",
+                row.personal_record || "",
+                row.recorded_at || ""
+            ]);
+            filename = `gym_performance_export_${new Date().toISOString().slice(0, 10)}.csv`;
+        } else {
+            headers = ["Player", "Opponent", "Date", "Feedback"];
+            rows = filteredData.map(row => [
+                row.player_name || "",
+                row.match_opponent || "",
+                row.match_date || "",
+                row.feedback || ""
+            ]);
+            filename = `feedback_export_${new Date().toISOString().slice(0, 10)}.csv`;
+        }
+
+        // Build CSV content
+        const csvContent = "data:text/csv;charset=utf-8,"
+            + headers.join(",") + "\n"
+            + rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="space-y-8">
             {/* Header Section */}
@@ -229,11 +325,17 @@ export default function DataEditorPage() {
                 icon={Database}
                 iconColor="pink"
                 title="Data Editor"
-                description="Edit match statistics and performance records"
+                description="Edit, manage, and export your match statistics and performance records"
                 actions={
-                    <Button onClick={() => setIsAddOpen(true)} className="bg-primary hover:bg-primary/90">
-                        <Plus size={16} className="mr-2" /> Add Record
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={handleExport} disabled={filteredData.length === 0}>
+                            <Download size={16} className="mr-2" />
+                            Export {filteredData.length > 0 && `(${filteredData.length})`}
+                        </Button>
+                        <Button onClick={() => setIsAddOpen(true)} className="bg-primary hover:bg-primary/90">
+                            <Plus size={16} className="mr-2" /> Add Record
+                        </Button>
+                    </div>
                 }
             />
 
@@ -259,33 +361,32 @@ export default function DataEditorPage() {
                         </div>
 
                         {/* Table Mode Selector */}
-                        <div className="w-full md:w-48">
+                        <div className="w-full md:w-52">
                             <Label className="text-xs text-muted-foreground mb-2 block">Data Type</Label>
-                            <Select value={mode} onValueChange={(v: EditorTable) => { setMode(v); setSearch(""); setOpponentFilter(""); }}>
+                            <Select value={mode} onValueChange={(v: EditorTable) => { setMode(v); setSearch(""); setOpponentFilter(""); setPlayerFilter(""); }}>
                                 <SelectTrigger className="h-10">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="match_stats">⚽ Match Stats</SelectItem>
                                     <SelectItem value="performance_stats">🏋️ Gym Performance</SelectItem>
+                                    <SelectItem value="feedback">💬 Player Feedback</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        {/* Filters Button - Only show for match_stats */}
-                        {mode === 'match_stats' && (
-                            <Button
-                                variant={showFilters ? "secondary" : "outline"}
-                                className="gap-2 h-10"
-                                onClick={() => setShowFilters(!showFilters)}
-                            >
-                                <SlidersHorizontal size={16} />
-                                Filters
-                                {(opponentFilter || startDate || endDate) && (
-                                    <Badge variant="secondary" className="ml-1 px-1 h-5 text-[10px]">!</Badge>
-                                )}
-                            </Button>
-                        )}
+                        {/* Filters Button */}
+                        <Button
+                            variant={showFilters ? "secondary" : "outline"}
+                            className="gap-2 h-10"
+                            onClick={() => setShowFilters(!showFilters)}
+                        >
+                            <SlidersHorizontal size={16} />
+                            Filters
+                            {(opponentFilter || startDate || endDate || playerFilter) && (
+                                <Badge variant="secondary" className="ml-1 px-1 h-5 text-[10px]">!</Badge>
+                            )}
+                        </Button>
 
                         {/* Save Status */}
                         <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-xl border border-border h-10">
@@ -303,40 +404,57 @@ export default function DataEditorPage() {
                         </div>
                     </div>
 
-                    {/* Additional Filters for Match Stats - Collapsible */}
-                    {mode === 'match_stats' && showFilters && (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t animate-in slide-in-from-top-2 fade-in duration-200">
-                            {/* Opposition - ComboSelect like Player Analysis */}
+                    {/* Advanced Filters - Collapsible */}
+                    {showFilters && (
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t animate-in slide-in-from-top-2 fade-in duration-200">
+                            {/* Player Filter - Always Available */}
                             <div>
-                                <Label className="text-xs text-muted-foreground mb-2 block">Opposition</Label>
+                                <Label className="text-xs text-muted-foreground mb-2 block">Player</Label>
                                 <ComboSelect
-                                    options={[{ label: "All Opponents", value: "all" }, ...uniqueOpponents.map(o => ({ label: o, value: o }))]}
-                                    value={opponentFilter || "all"}
-                                    onValueChange={(val) => setOpponentFilter(val === "all" ? "" : val)}
-                                    placeholder="Select opponent"
+                                    options={[{ label: "All Players", value: "all" }, ...uniquePlayers.map(p => ({ label: p, value: p }))]}
+                                    value={playerFilter || "all"}
+                                    onValueChange={(val) => setPlayerFilter(val === "all" ? "" : val)}
+                                    placeholder="Select player"
                                     searchPlaceholder="Type to search..."
                                 />
                             </div>
 
-                            {/* Date Range */}
-                            <div>
-                                <Label className="text-xs text-muted-foreground mb-2 block">Start Date</Label>
-                                <Input
-                                    type="date"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                    className="h-10"
-                                />
-                            </div>
-                            <div>
-                                <Label className="text-xs text-muted-foreground mb-2 block">End Date</Label>
-                                <Input
-                                    type="date"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                    className="h-10"
-                                />
-                            </div>
+                            {/* Match Stats only filters */}
+                            {mode === 'match_stats' && (
+                                <>
+                                    {/* Opposition Filter */}
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground mb-2 block">Opposition</Label>
+                                        <ComboSelect
+                                            options={[{ label: "All Opponents", value: "all" }, ...uniqueOpponents.map(o => ({ label: o, value: o }))]}
+                                            value={opponentFilter || "all"}
+                                            onValueChange={(val) => setOpponentFilter(val === "all" ? "" : val)}
+                                            placeholder="Select opponent"
+                                            searchPlaceholder="Type to search..."
+                                        />
+                                    </div>
+
+                                    {/* Date Range */}
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground mb-2 block">Start Date</Label>
+                                        <Input
+                                            type="date"
+                                            value={startDate}
+                                            onChange={(e) => setStartDate(e.target.value)}
+                                            className="h-10"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground mb-2 block">End Date</Label>
+                                        <Input
+                                            type="date"
+                                            value={endDate}
+                                            onChange={(e) => setEndDate(e.target.value)}
+                                            className="h-10"
+                                        />
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
@@ -357,10 +475,9 @@ export default function DataEditorPage() {
                             <DataTableHead className="text-center w-[80px]">Passes</DataTableHead>
                             <DataTableHead className="text-center w-[80px]">Succ. Passes</DataTableHead>
                             <DataTableHead className="text-center w-[80px]">Tackles</DataTableHead>
-                            <DataTableHead className="min-w-[200px]">Feedback</DataTableHead>
                             <DataTableHead className="w-[50px]"></DataTableHead>
                         </>
-                    ) : (
+                    ) : mode === 'performance_stats' ? (
                         <>
                             <DataTableHead className="min-w-[200px]">Player</DataTableHead>
                             <DataTableHead className="min-w-[200px]">Exercise</DataTableHead>
@@ -370,16 +487,24 @@ export default function DataEditorPage() {
                             <DataTableHead className="text-center w-[100px]">PR 4</DataTableHead>
                             <DataTableHead className="w-[50px]"></DataTableHead>
                         </>
+                    ) : (
+                        <>
+                            <DataTableHead className="min-w-[150px]">Player</DataTableHead>
+                            <DataTableHead className="min-w-[130px]">Date</DataTableHead>
+                            <DataTableHead className="min-w-[150px]">Opponent</DataTableHead>
+                            <DataTableHead className="min-w-[400px]">Feedback</DataTableHead>
+                            <DataTableHead className="w-[50px]"></DataTableHead>
+                        </>
                     )}
                 </DataTableHeader>
                 <DataTableBody>
                     {loading ? (
-                        <DataTableLoading colSpan={mode === 'match_stats' ? 12 : 7} />
+                        <DataTableLoading colSpan={mode === 'match_stats' ? 12 : mode === 'performance_stats' ? 7 : 5} />
                     ) : filteredData.length === 0 ? (
-                        <DataTableEmpty colSpan={mode === 'match_stats' ? 12 : 7} message="No data matches your search." />
+                        <DataTableEmpty colSpan={mode === 'match_stats' ? 12 : mode === 'performance_stats' ? 7 : 5} message="No data matches your search." />
                     ) : (
                         filteredData.map((row) => (
-                            <DataTableRow key={mode === 'match_stats' ? `${row.match_id}-${row.player_name}` : `${row.player_name}-${row.exercise}`}>
+                            <DataTableRow key={mode === 'feedback' ? row.id : mode === 'match_stats' ? `${row.match_id}-${row.player_name}` : `${row.player_name}-${row.exercise}`}>
                                 {mode === 'match_stats' ? (
                                     <>
                                         <EditableCell row={row} field="player_name" val={row.player_name} onUpdate={handleUpdate} className="font-medium" />
@@ -392,7 +517,20 @@ export default function DataEditorPage() {
                                         <EditableCell row={row} field="total_passes" val={row.total_passes} onUpdate={handleUpdate} />
                                         <EditableCell row={row} field="successful_passes" val={row.successful_passes} onUpdate={handleUpdate} />
                                         <EditableCell row={row} field="total_tackles" val={row.total_tackles} onUpdate={handleUpdate} />
-                                        <EditableCell row={row} field="feedback" val={row.feedback} onUpdate={handleUpdate} className="text-left text-xs italic text-muted-foreground" />
+                                        <DataTableCell className="p-1">
+                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(row)} className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0">
+                                                <Trash2 size={16} />
+                                            </Button>
+                                        </DataTableCell>
+                                    </>
+                                ) : mode === 'performance_stats' ? (
+                                    <>
+                                        <EditableCell row={row} field="player_name" val={row.player_name} onUpdate={handleUpdate} className="font-medium" />
+                                        <EditableCell row={row} field="exercise" val={row.exercise} onUpdate={handleUpdate} className="text-primary font-medium" />
+                                        <EditableCell row={row} field="pr_1" val={row.pr_1} onUpdate={handleUpdate} />
+                                        <EditableCell row={row} field="pr_2" val={row.pr_2} onUpdate={handleUpdate} />
+                                        <EditableCell row={row} field="pr_3" val={row.pr_3} onUpdate={handleUpdate} />
+                                        <EditableCell row={row} field="pr_4" val={row.pr_4} onUpdate={handleUpdate} />
                                         <DataTableCell className="p-1">
                                             <Button variant="ghost" size="sm" onClick={() => handleDelete(row)} className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0">
                                                 <Trash2 size={16} />
@@ -402,11 +540,9 @@ export default function DataEditorPage() {
                                 ) : (
                                     <>
                                         <EditableCell row={row} field="player_name" val={row.player_name} onUpdate={handleUpdate} className="font-medium" />
-                                        <EditableCell row={row} field="exercise" val={row.exercise} onUpdate={handleUpdate} className="text-primary font-medium" />
-                                        <EditableCell row={row} field="pr_1" val={row.pr_1} onUpdate={handleUpdate} />
-                                        <EditableCell row={row} field="pr_2" val={row.pr_2} onUpdate={handleUpdate} />
-                                        <EditableCell row={row} field="pr_3" val={row.pr_3} onUpdate={handleUpdate} />
-                                        <EditableCell row={row} field="pr_4" val={row.pr_4} onUpdate={handleUpdate} />
+                                        <EditableCell row={row} field="match_date" val={row.match_date} onUpdate={handleUpdate} className="text-muted-foreground text-xs" type="date" />
+                                        <EditableCell row={row} field="match_opponent" val={row.match_opponent} onUpdate={handleUpdate} className="text-muted-foreground text-xs" />
+                                        <EditableCell row={row} field="feedback" val={row.feedback} onUpdate={handleUpdate} className="text-left text-sm italic text-muted-foreground" />
                                         <DataTableCell className="p-1">
                                             <Button variant="ghost" size="sm" onClick={() => handleDelete(row)} className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0">
                                                 <Trash2 size={16} />
@@ -425,7 +561,7 @@ export default function DataEditorPage() {
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle className="text-xl font-bold">
-                            Add New {mode === 'match_stats' ? 'Match Statistic' : 'Performance Record'}
+                            Add New {mode === 'match_stats' ? 'Match Statistic' : mode === 'performance_stats' ? 'Performance Record' : 'Feedback Entry'}
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -439,7 +575,7 @@ export default function DataEditorPage() {
                             />
                         </div>
 
-                        {mode === 'match_stats' ? (
+                        {mode === 'match_stats' || mode === 'feedback' ? (
                             <div className="space-y-2">
                                 <Label>Match</Label>
                                 <ComboSelect
@@ -449,9 +585,13 @@ export default function DataEditorPage() {
                                     placeholder="Select Match..."
                                     searchPlaceholder="Search matches..."
                                 />
-                                <p className="text-xs text-muted-foreground">Note: To create a new match, please do so via Database Admin or API.</p>
+                                {mode === 'match_stats' && (
+                                    <p className="text-xs text-muted-foreground">Note: To create a new match, please do so via Database Admin or API.</p>
+                                )}
                             </div>
-                        ) : (
+                        ) : null}
+
+                        {mode === 'performance_stats' && (
                             <div className="space-y-2">
                                 <Label>Exercise</Label>
                                 <Input
@@ -459,6 +599,18 @@ export default function DataEditorPage() {
                                     value={newRecord.exercise || ''}
                                     onChange={e => setNewRecord({ ...newRecord, exercise: e.target.value })}
                                     className="h-11"
+                                />
+                            </div>
+                        )}
+
+                        {mode === 'feedback' && (
+                            <div className="space-y-2">
+                                <Label>Feedback</Label>
+                                <textarea
+                                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter player feedback here..."
+                                    value={newRecord.feedback || ''}
+                                    onChange={e => setNewRecord({ ...newRecord, feedback: e.target.value })}
                                 />
                             </div>
                         )}

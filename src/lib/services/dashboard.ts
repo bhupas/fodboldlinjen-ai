@@ -81,7 +81,9 @@ export const getDashboardStats = async () => {
         minutes: number,
         yellowCards: number,
         redCards: number,
-        perfCount: number
+        perfCount: number,
+        offContrib: number,
+        defContrib: number
     }>();
 
     enrichedStats.forEach(s => {
@@ -97,7 +99,9 @@ export const getDashboardStats = async () => {
                 minutes: 0,
                 yellowCards: 0,
                 redCards: 0,
-                perfCount: 0
+                perfCount: 0,
+                offContrib: 0,
+                defContrib: 0
             });
         }
         const p = playerMap.get(s.player_name)!;
@@ -110,6 +114,8 @@ export const getDashboardStats = async () => {
         p.minutes += (s.minutes_played || 0);
         p.yellowCards += (s.yellow_cards || 0);
         p.redCards += (s.red_cards || 0);
+        p.offContrib += s.off_contrib;
+        p.defContrib += s.def_contrib;
     });
 
     if (perfStats) {
@@ -118,7 +124,7 @@ export const getDashboardStats = async () => {
                 playerMap.set(p.player_name, {
                     name: p.player_name,
                     games: 0, avgPassing: 0, totalShots: 0, totalTackles: 0, goals: 0, assists: 0, minutes: 0,
-                    yellowCards: 0, redCards: 0, perfCount: 0
+                    yellowCards: 0, redCards: 0, perfCount: 0, offContrib: 0, defContrib: 0
                 });
             }
             const player = playerMap.get(p.player_name)!;
@@ -153,6 +159,8 @@ export const getDashboardStats = async () => {
         redCards: p.redCards,
         perfCount: p.perfCount,
         games: p.games,
+        offContrib: p.offContrib / (p.games || 1), // Average per game
+        defContrib: p.defContrib / (p.games || 1), // Average per game
         gymData: playerGymMap.get(p.name) || [] // Attach detailed gym data
     })).sort((a, b) => b.games - a.games); // Default sort by games played
 

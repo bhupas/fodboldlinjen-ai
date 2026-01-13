@@ -34,15 +34,12 @@ import {
     Search,
     Users,
     Dumbbell,
-    Download,
     Ban,
     SlidersHorizontal,
     MessageSquare,
     BarChart3,
     TrendingUp,
     Target,
-    Loader2,
-    Brain,
     Sparkles
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -96,8 +93,6 @@ export default function PlayerStatsPage() {
     const [selectedFeedbackPlayer, setSelectedFeedbackPlayer] = useState<string>("all");
     const [selectedFeedbackOpponent, setSelectedFeedbackOpponent] = useState<string>("all");
     const [feedbackSearch, setFeedbackSearch] = useState<string>("");
-    const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
-    const [analyzingAI, setAnalyzingAI] = useState(false);
 
     // Gym Filters
     const [gymSearch, setGymSearch] = useState<string>("");
@@ -357,94 +352,6 @@ export default function PlayerStatsPage() {
         return counts;
     }, [feedbackText]);
 
-    const handleAIAnalysis = async () => {
-        setAnalyzingAI(true);
-        setAiAnalysis(null);
-
-        try {
-            const feedbackSample = filteredFeedback.slice(0, 30).map(f =>
-                `${f.player_name}: "${f.feedback}"`
-            ).join('\n');
-
-            const response = await fetch('/api/ai-report', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    scope: 'Team',
-                    targetLabel: 'Feedback Analysis',
-                    analysisType: 'feedback',
-                    customPrompt: `
-Du er en erfaren og empatisk fodboldtræner, der analyserer spillernes selvevalueringer.
-Brug en varm, støttende og anerkendende tone.
-
-**SPILLERSELVEVALUERINGER:**
-${feedbackSample}
-
-**ANALYSER OG GIV:**
-
-## 🌟 Styrker og Fremskridt
-Identificer 3-5 positive temaer, som spillerne selv fremhæver.
-
-## 💡 Spillernes Egen Oplevelse
-Opsummer hvad selvevalueringerne fortæller om spillernes mentale tilstand.
-
-## 🌱 Udviklingsmuligheder
-Beskriv de områder spillerne selv ønsker at forbedre.
-
-## 🤝 Støttende Anbefalinger
-5 konkrete handlinger træneren kan tage for at hjælpe spillerne.
-
-## 🎯 Fokus til Næste Kamp
-3 fokuspunkter til næste kamp baseret på spillernes input.
-
-Vær konkret og handlingsorienteret med en positiv tone.
-`
-                })
-            });
-
-            if (!response.ok) throw new Error('Failed to get AI analysis');
-
-            const data = await response.json();
-            setAiAnalysis(data.report);
-        } catch (err) {
-            console.error("AI Analysis failed:", err);
-            setAiAnalysis("Kunne ikke generere AI analyse. Prøv igen senere.");
-        } finally {
-            setAnalyzingAI(false);
-        }
-    };
-
-    // Export Functionality
-    const handleExport = () => {
-        const headers = ["Player", "Age", "Matches", "Minutes", "Goals", "Assists", "Passing %", "Tackles", "Yellow Cards", "Red Cards", "Gym Sessions", "Best PR"];
-        const rows = filteredPlayers.map(p => [
-            p.name,
-            p.age || "N/A",
-            p.games,
-            p.minutes,
-            p.goals,
-            p.assists,
-            p.avgPassing.toFixed(2),
-            p.totalTackles,
-            p.yellowCards,
-            p.redCards,
-            p.perfCount,
-            p.maxGymPR
-        ]);
-
-        const csvContent = "data:text/csv;charset=utf-8,"
-            + headers.join(",") + "\n"
-            + rows.map(e => e.join(",")).join("\n");
-
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `player_analysis_export_${new Date().toISOString().slice(0, 10)}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-
     if (loading) return <LoadingSkeleton variant="table" />;
 
     return (
@@ -455,12 +362,6 @@ Vær konkret og handlingsorienteret med en positiv tone.
                 title="Player Analysis"
                 description="Detailed performance metrics, feedback analysis, and team insights"
                 badge={<CountBadge count={filteredPlayers.length} label="Players Found" />}
-                actions={
-                    <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
-                        <Download size={14} />
-                        Export CSV
-                    </Button>
-                }
             />
 
             {/* Main Tabs */}
@@ -1046,7 +947,6 @@ Vær konkret og handlingsorienteret med en positiv tone.
                         <TabsList className="bg-muted p-1 rounded-xl">
                             <TabsTrigger value="wordcloud" className="rounded-lg">☁️ Word Cloud</TabsTrigger>
                             <TabsTrigger value="themes" className="rounded-lg">📊 Themes</TabsTrigger>
-                            <TabsTrigger value="ai" className="rounded-lg">🤖 AI Analysis</TabsTrigger>
                             <TabsTrigger value="list" className="rounded-lg">📝 All Feedback</TabsTrigger>
                         </TabsList>
 
@@ -1134,66 +1034,6 @@ Vær konkret og handlingsorienteret med en positiv tone.
                                     </div>
                                 </Card>
                             </div>
-                        </TabsContent>
-
-                        <TabsContent value="ai" className="mt-6">
-                            <Card className="glass-card p-6">
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                                            <Brain className="text-purple-500 w-5 h-5" />
-                                            AI Feedback Analysis
-                                        </h3>
-                                        <p className="text-sm text-muted-foreground mt-1">
-                                            Use AI to analyze player feedback and get actionable insights.
-                                        </p>
-                                    </div>
-                                    <Button
-                                        onClick={handleAIAnalysis}
-                                        disabled={analyzingAI || filteredFeedback.length === 0}
-                                        className="btn-premium"
-                                    >
-                                        {analyzingAI ? (
-                                            <>
-                                                <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                                                Analyzing...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Sparkles className="mr-2 h-4 w-4" />
-                                                Generate AI Analysis
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-
-                                {aiAnalysis ? (
-                                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                                        <div className="bg-gradient-to-br from-purple-500/5 to-blue-500/5 p-6 rounded-xl border border-purple-500/20">
-                                            {aiAnalysis.split('\n').map((line, i) => {
-                                                if (line.startsWith('## ')) {
-                                                    return <h2 key={i} className="text-lg font-bold mt-4 mb-2">{line.replace('## ', '')}</h2>;
-                                                }
-                                                if (line.startsWith('- ') || line.startsWith('* ')) {
-                                                    return <p key={i} className="text-muted-foreground ml-4">• {line.slice(2)}</p>;
-                                                }
-                                                if (line.trim()) {
-                                                    return <p key={i} className="text-muted-foreground mb-2">{line}</p>;
-                                                }
-                                                return null;
-                                            })}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-border rounded-xl bg-muted/20">
-                                        <Brain size={48} className="text-muted-foreground mb-4 opacity-50" />
-                                        <h4 className="text-lg font-semibold text-foreground mb-2">No Analysis Yet</h4>
-                                        <p className="text-muted-foreground max-w-md">
-                                            Click "Generate AI Analysis" to get insights from player feedback.
-                                        </p>
-                                    </div>
-                                )}
-                            </Card>
                         </TabsContent>
 
                         <TabsContent value="list" className="mt-6">

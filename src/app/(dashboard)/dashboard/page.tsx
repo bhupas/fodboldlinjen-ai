@@ -17,7 +17,12 @@ import {
     ResponsiveContainer,
     Cell,
     Area,
-    AreaChart
+    AreaChart,
+    ScatterChart,
+    Scatter,
+    ZAxis,
+    ReferenceLine,
+    Label
 } from 'recharts';
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
@@ -204,6 +209,59 @@ export default function DashboardPage() {
                     </div>
                 </Card>
             </div>
+
+            {/* Advanced Analytics - Scatter Plot: Offense vs Defense */}
+            <Card className="glass-card p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                        <Users className="text-purple-500 w-5 h-5" />
+                        Player Styles Analysis
+                    </h3>
+                    <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                        Contribution per Match
+                    </span>
+                </div>
+                <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                            <XAxis type="number" dataKey="defContrib" name="Defensive" unit="" stroke="hsl(var(--muted-foreground))" fontSize={11}>
+                                <Label value="Defensive Contribution" offset={-10} position="insideBottom" />
+                            </XAxis>
+                            <YAxis type="number" dataKey="offContrib" name="Offensive" unit="" stroke="hsl(var(--muted-foreground))" fontSize={11}>
+                                <Label value="Offensive Contribution" angle={-90} position="left" />
+                            </YAxis>
+                            <ZAxis type="number" dataKey="games" range={[60, 400]} name="Games" />
+                            <Tooltip cursor={{ strokeDasharray: '3 3' }}
+                                content={({ active, payload }) => {
+                                    if (active && payload && payload.length) {
+                                        const data = payload[0].payload;
+                                        return (
+                                            <div style={{ backgroundColor: '#000', border: '1px solid #444', borderRadius: '8px', padding: '8px 12px', boxShadow: '0 4px 16px rgba(0,0,0,0.6)' }}>
+                                                <p style={{ color: '#fff', fontWeight: 600, fontSize: '13px', margin: 0 }}>{data.name}</p>
+                                                <p style={{ color: '#ddd', fontSize: '12px', margin: '4px 0 0 0' }}>Off: {Number(data.offContrib).toFixed(1)}</p>
+                                                <p style={{ color: '#ddd', fontSize: '12px', margin: '0' }}>Def: {Number(data.defContrib).toFixed(1)}</p>
+                                                <p style={{ color: '#888', fontSize: '10px', margin: '4px 0 0 0' }}>{data.games} Matches</p>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                }}
+                            />
+                            <ReferenceLine y={0} stroke="hsl(var(--border))" />
+                            <ReferenceLine x={0} stroke="hsl(var(--border))" />
+                            <Scatter name="Players" data={data.allPlayers} fill="#8884d8">
+                                {data.allPlayers.map((entry: any, index: number) => (
+                                    <Cell key={`cell-${index}`} fill={`hsl(var(--primary))`} fillOpacity={0.7} />
+                                ))}
+                            </Scatter>
+                        </ScatterChart>
+                    </ResponsiveContainer>
+                </div>
+                <div className="grid grid-cols-2 text-xs text-muted-foreground mt-2 px-8">
+                    <div className="text-left">High Defense</div>
+                    <div className="text-right">High Offense</div>
+                </div>
+            </Card>
 
             {/* Top Performers Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

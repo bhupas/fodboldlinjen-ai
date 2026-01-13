@@ -112,6 +112,41 @@ export default function ComparisonPage() {
                     ))}
                 </Card>
             )}
+
+            {/* Similar Players Suggestion */}
+            {player1 && (
+                <Card className="glass-card p-6">
+                    <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                        <Swords className="text-muted-foreground w-5 h-5" />
+                        Similar Players to {player1.name}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {getSimilarPlayers(player1, players)
+                            .filter(p => p.name !== player2?.name) // Exclude currently selected player 2
+                            .slice(0, 3)
+                            .map(p => (
+                                <div key={p.name} className="p-4 rounded-xl border border-border bg-card/50 hover:bg-card transition-colors cursor-pointer" onClick={() => setPlayer2Id(p.name)}>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="font-bold text-sm">{p.name}</div>
+                                        <div className="text-xs bg-green-500/10 text-green-500 px-2 py-0.5 rounded-full">
+                                            {p.similarity}% match
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-muted-foreground space-y-1">
+                                        <div className="flex justify-between">
+                                            <span>Passing</span>
+                                            <span>{p.avgPassing.toFixed(0)}%</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Goals</span>
+                                            <span>{p.goals}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                    </div>
+                </Card>
+            )}
         </div>
     );
 }
@@ -212,4 +247,42 @@ function PlayerCard({ player, players, selectedId, onSelect, color, label }: Pla
             )}
         </Card>
     )
+
 }
+
+function getSimilarPlayers(target: any, all: any[]) {
+    // Determine max values for normalization
+    const maxGoals = Math.max(...all.map(p => p.goals), 1);
+    const maxAssists = Math.max(...all.map(p => p.assists), 1);
+    const maxPassing = Math.max(...all.map(p => p.avgPassing), 1);
+    const maxTackles = Math.max(...all.map(p => p.totalTackles), 1);
+
+    const scores = all
+        .filter(p => p.name !== target.name)
+        .map(p => {
+            // Calculate distance for each metric
+            const dGoals = (p.goals - target.goals) / maxGoals;
+            const dAssists = (p.assists - target.assists) / maxAssists;
+            const dPassing = (p.avgPassing - target.avgPassing) / maxPassing;
+            const dTackles = (p.totalTackles - target.totalTackles) / maxTackles;
+
+            // Euclidean distance
+            const distance = Math.sqrt(
+                dGoals * dGoals +
+                dAssists * dAssists +
+                dPassing * dPassing +
+                dTackles * dTackles
+            );
+
+            // Convert distance to similarity score (0 to 100)
+            // Smaller distance = Higher similarity
+            // Sigmoid-ish or linear mapping. Let's use simple linear for small distances.
+            // Max possible distance is sqrt(4) = 2.
+            const similarity = Math.max(0, 100 * (1 - distance / 2));
+
+            return { ...p, similarity: Math.round(similarity) };
+        });
+
+    return scores.sort((a, b) => b.similarity - a.similarity);
+}
+
