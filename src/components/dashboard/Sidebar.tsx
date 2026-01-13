@@ -67,8 +67,16 @@ export default function Sidebar() {
     }, []);
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut();
-        router.push("/login");
+        try {
+            await supabase.auth.signOut();
+            localStorage.clear(); // Clear any local state
+            router.refresh(); // Refresh server components
+            router.push("/login");
+        } catch (error) {
+            console.error("Error signing out:", error);
+            // Force redirect even on error
+            window.location.href = "/login";
+        }
     };
 
     return (

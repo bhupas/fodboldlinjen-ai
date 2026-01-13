@@ -68,8 +68,15 @@ export default function MobileBottomNav() {
     }, []);
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut();
-        router.push("/login");
+        try {
+            await supabase.auth.signOut();
+            localStorage.clear();
+            router.refresh();
+            router.push("/login");
+        } catch (error) {
+            console.error("Error signing out:", error);
+            window.location.href = "/login";
+        }
     };
 
     const isActive = (href: string) => {
