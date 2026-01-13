@@ -346,13 +346,13 @@ export default function PlayerProfilePage({ params }: { params: { name: string }
             <Tabs defaultValue="matches" className="w-full mt-8">
                 <TabsList className="bg-muted p-1 rounded-xl w-full md:w-auto grid grid-cols-3 md:inline-flex">
                     <TabsTrigger value="matches" className="rounded-lg">
-                        Match History
+                        Matches
                     </TabsTrigger>
                     <TabsTrigger value="insights" className="rounded-lg">
-                        Performance Insights
+                        Insights
                     </TabsTrigger>
                     <TabsTrigger value="gym" className="rounded-lg">
-                        Physical & Gym
+                        Gym
                     </TabsTrigger>
                 </TabsList>
 
