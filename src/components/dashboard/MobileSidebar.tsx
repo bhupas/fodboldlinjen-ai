@@ -21,13 +21,13 @@ import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
 const NAV_ITEMS = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/upload", label: "Upload Data", icon: Upload },
-    { href: "/players", label: "Player Stats", icon: Users },
+    { href: "/home", label: "Home", icon: LayoutDashboard },
+    { href: "/upload", label: "Upload", icon: Upload },
+    { href: "/players", label: "Players", icon: Users },
     { href: "/comparison", label: "Head to Head", icon: Swords },
-    { href: "/ai-coach", label: "AI Coach", icon: BrainCircuit },
+    { href: "/ai", label: "AI", icon: BrainCircuit },
     { href: "/editor", label: "Data Editor", icon: Database },
-    { href: "/admin/users", label: "Sys Admin", icon: Settings },
+    { href: "/admin/users", label: "Admin", icon: Settings },
 ];
 
 export default function MobileSidebar() {

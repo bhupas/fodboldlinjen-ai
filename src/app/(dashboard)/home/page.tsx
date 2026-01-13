@@ -309,10 +309,10 @@ export default function DashboardPage() {
                             Ask the AI Coach to analyze your latest match or training data.
                         </p>
                     </div>
-                    <Link href="/ai-coach">
+                    <Link href="/ai">
                         <Button className="btn-premium whitespace-nowrap flex items-center gap-2">
                             <Target size={18} />
-                            Go to AI Coach
+                            Go to AI
                         </Button>
                     </Link>
                 </div>

@@ -26,16 +26,16 @@ import { useTheme } from "@/lib/theme-context";
 import { useState, useEffect } from "react";
 
 const NAV_ITEMS = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, description: "Overview & Analytics" },
-    { href: "/upload", label: "Upload Data", icon: Upload, description: "Import matches & gym data" },
-    { href: "/players", label: "Player Analysis", icon: Users, description: "Stats, feedback & insights" },
+    { href: "/home", label: "Home", icon: LayoutDashboard, description: "Overview & Analytics" },
+    { href: "/upload", label: "Upload", icon: Upload, description: "Import matches & gym data" },
+    { href: "/players", label: "Players", icon: Users, description: "Stats, feedback & insights" },
     { href: "/comparison", label: "Head to Head", icon: Swords, description: "Compare players" },
-    { href: "/ai-coach", label: "AI Coach", icon: BrainCircuit, description: "Get tactical insights" },
+    { href: "/ai", label: "AI", icon: BrainCircuit, description: "Get tactical insights" },
     { href: "/editor", label: "Data Editor", icon: Database, description: "Edit records" },
 ];
 
 const ADMIN_ITEMS = [
-    { href: "/admin/users", label: "User Management", icon: Settings, description: "Manage users" },
+    { href: "/admin/users", label: "Admin", icon: Settings, description: "Manage users" },
 ];
 
 export default function Sidebar() {
@@ -75,7 +75,7 @@ export default function Sidebar() {
         <aside className="hidden md:flex flex-col w-72 glass-panel m-4 mr-0 border-r-0 rounded-2xl overflow-hidden" style={{ height: 'calc(100vh - 2rem)' }}>
             {/* Header */}
             <div className="p-6 border-b border-border/50">
-                <Link href="/dashboard" className="flex items-center gap-3 group">
+                <Link href="/home" className="flex items-center gap-3 group">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
                         <Sparkles className="text-white" size={20} />
                     </div>

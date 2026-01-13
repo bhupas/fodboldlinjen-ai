@@ -49,14 +49,14 @@ export function PageHeader({
                 <div className="flex items-start gap-3">
                     {Icon && (
                         <div className={cn(
-                            "w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-lg flex-shrink-0",
+                            "w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-lg flex-shrink-0",
                             iconColorStyles[iconColor]
                         )}>
                             <Icon className="text-white" size={20} />
                         </div>
                     )}
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-3">
+                        <h1 className="text-xl md:text-3xl font-bold text-foreground flex items-center gap-3">
                             {title}
                             {badge && <div>{badge}</div>}
                         </h1>

@@ -18,13 +18,23 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="w-full max-w-7xl mx-auto p-6 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse-glow">
-            <Sparkles className="text-white" size={20} />
-          </div>
-          <span className="text-xl font-bold gradient-text">
-            myaitrainer
-          </span>
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse-glow group-hover:scale-105 transition-transform">
+              <Sparkles className="text-white" size={20} />
+            </div>
+            <span className="text-xl font-bold gradient-text">
+              myaitrainer
+            </span>
+          </Link>
         </div>
+
+        {/* Desktop Nav Links */}
+        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
+          <Link href="#features" className="hover:text-foreground transition-colors">Features</Link>
+          <Link href="#about" className="hover:text-foreground transition-colors">About</Link>
+          <Link href="#contact" className="hover:text-foreground transition-colors">Contact</Link>
+        </div>
+
         <div className="flex items-center gap-3">
           {/* Theme Toggle */}
           <Button
@@ -37,13 +47,8 @@ export default function LandingPage() {
             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </Button>
           <Link href="/login">
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground hover:bg-accent">
-              Log In
-            </Button>
-          </Link>
-          <Link href="/login">
             <Button className="bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/25 rounded-xl">
-              Get Started
+              Log In
             </Button>
           </Link>
         </div>
@@ -153,6 +158,66 @@ export default function LandingPage() {
             </Button>
           </Link>
         </Card>
+
+        {/* About Section */}
+        <div id="about" className="mt-32 w-full scroll-mt-24">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold mb-6">
+              Our <span className="gradient-text">Mission</span>
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              We're democratizing elite-level football intelligence. By making advanced data analytics accessible to every coach, we're fostering the next generation of talent.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+            <Card className="p-8 glass-card border-l-4 border-l-blue-500">
+              <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-blue-500" />
+                For Coaches
+              </h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Save hours on analysis. Get instant, actionable insights to improve training sessions and match tactics without needing a data science degree.
+              </p>
+            </Card>
+            <Card className="p-8 glass-card border-l-4 border-l-purple-500">
+              <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
+                <Users className="w-5 h-5 text-purple-500" />
+                For Players
+              </h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Understand your game like never before. See exactly where you need to improve and track your progress over time with objective data.
+              </p>
+            </Card>
+          </div>
+        </div>
+
+        {/* Contact Section */}
+        <div id="contact" className="mt-32 w-full mb-12 scroll-mt-24">
+          <Card className="p-10 glass-card bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold mb-4">Get in Touch</h2>
+              <p className="text-muted-foreground">
+                Have questions? We're here to help you get started.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+              <div className="p-4 rounded-2xl bg-background/50 border border-border/50">
+                <h3 className="font-semibold mb-1">Email</h3>
+                <p className="text-sm text-muted-foreground">support@myaitrainer.com</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-background/50 border border-border/50">
+                <h3 className="font-semibold mb-1">Live Chat</h3>
+                <p className="text-sm text-muted-foreground">Available Mon-Fri</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-background/50 border border-border/50">
+                <h3 className="font-semibold mb-1">Office</h3>
+                <p className="text-sm text-muted-foreground">Copenhagen, Denmark</p>
+              </div>
+            </div>
+          </Card>
+        </div>
       </main>
 
       <footer className="w-full py-8 text-center text-sm relative z-10 mt-12 text-muted-foreground border-t border-border">
@@ -162,9 +227,10 @@ export default function LandingPage() {
             <span>&copy; 2024 myaitrainer</span>
           </div>
           <div className="flex items-center gap-6">
-            <span className="cursor-pointer transition-colors hover:text-foreground">Privacy</span>
-            <span className="cursor-pointer transition-colors hover:text-foreground">Terms</span>
-            <span className="cursor-pointer transition-colors hover:text-foreground">Contact</span>
+            <Link href="/privacy" className="cursor-pointer transition-colors hover:text-foreground">Privacy</Link>
+            <Link href="/terms" className="cursor-pointer transition-colors hover:text-foreground">Terms</Link>
+            <Link href="#about" className="cursor-pointer transition-colors hover:text-foreground">About Us</Link>
+            <Link href="#contact" className="cursor-pointer transition-colors hover:text-foreground">Contact</Link>
           </div>
         </div>
       </footer>

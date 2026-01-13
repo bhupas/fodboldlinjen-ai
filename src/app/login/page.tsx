@@ -39,7 +39,7 @@ export default function LoginPage() {
                 // Successful login
                 // Refresh the router to prevent stale cache issues
                 router.refresh();
-                router.push("/dashboard");
+                router.push("/home");
 
                 // Note: We don't set isLoading(false) here because we want the spinner 
                 // to show until the page actually changes.

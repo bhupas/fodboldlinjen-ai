@@ -359,27 +359,27 @@ export default function PlayerStatsPage() {
             <PageHeader
                 icon={Users}
                 iconColor="blue"
-                title="Player Analysis"
+                title="Players"
                 description="Detailed performance metrics, feedback analysis, and team insights"
                 badge={<CountBadge count={filteredPlayers.length} label="Players Found" />}
             />
 
             {/* Main Tabs */}
             <Tabs defaultValue="players" className="w-full">
-                <TabsList className="bg-muted p-1 rounded-xl w-full md:w-auto grid grid-cols-4 md:inline-flex">
-                    <TabsTrigger value="players" className="rounded-lg gap-2">
+                <TabsList className="bg-muted p-1 rounded-xl w-full md:w-auto flex overflow-x-auto no-scrollbar md:inline-flex">
+                    <TabsTrigger value="players" className="rounded-lg gap-2 flex-1 md:flex-none min-w-[100px]">
                         <TrendingUp size={16} />
                         Performance
                     </TabsTrigger>
-                    <TabsTrigger value="gym" className="rounded-lg gap-2">
+                    <TabsTrigger value="gym" className="rounded-lg gap-2 flex-1 md:flex-none min-w-[80px]">
                         <Dumbbell size={16} />
                         Gym
                     </TabsTrigger>
-                    <TabsTrigger value="feedback" className="rounded-lg gap-2">
+                    <TabsTrigger value="feedback" className="rounded-lg gap-2 flex-1 md:flex-none min-w-[90px]">
                         <MessageSquare size={16} />
                         Feedback
                     </TabsTrigger>
-                    <TabsTrigger value="insights" className="rounded-lg gap-2">
+                    <TabsTrigger value="insights" className="rounded-lg gap-2 flex-1 md:flex-none min-w-[90px]">
                         <BarChart3 size={16} />
                         Insights
                     </TabsTrigger>
@@ -563,14 +563,14 @@ export default function PlayerStatsPage() {
                         <DataTable>
                             <DataTableHeader>
                                 <DataTableHead>Player</DataTableHead>
-                                <DataTableHead>Age</DataTableHead>
+                                <DataTableHead className="hidden md:table-cell">Age</DataTableHead>
                                 <DataTableHead className="text-right">Matches</DataTableHead>
-                                <DataTableHead className="text-right">Mins</DataTableHead>
+                                <DataTableHead className="text-right hidden lg:table-cell">Mins</DataTableHead>
                                 <DataTableHead className="text-right">Goals</DataTableHead>
-                                <DataTableHead className="text-right">Assists</DataTableHead>
-                                <DataTableHead className="text-right">Passing</DataTableHead>
-                                <DataTableHead className="text-right">Tackles</DataTableHead>
-                                <DataTableHead className="text-right">Cards</DataTableHead>
+                                <DataTableHead className="text-right hidden sm:table-cell">Assists</DataTableHead>
+                                <DataTableHead className="text-right hidden md:table-cell">Passing</DataTableHead>
+                                <DataTableHead className="text-right hidden lg:table-cell">Tackles</DataTableHead>
+                                <DataTableHead className="text-right hidden lg:table-cell">Cards</DataTableHead>
                             </DataTableHeader>
                             <DataTableBody>
                                 {paginatedPlayers.length > 0 ? (
@@ -584,7 +584,7 @@ export default function PlayerStatsPage() {
                                                     <span className="text-base group-hover:text-primary transition-colors">{player.name}</span>
                                                 </div>
                                             </DataTableCell>
-                                            <DataTableCell>
+                                            <DataTableCell className="hidden md:table-cell">
                                                 {player.age ? (
                                                     <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/30 text-xs font-mono">
                                                         {player.age} yo
@@ -594,7 +594,7 @@ export default function PlayerStatsPage() {
                                                 )}
                                             </DataTableCell>
                                             <DataTableCell className="text-right text-muted-foreground font-mono">{player.games}</DataTableCell>
-                                            <DataTableCell className="text-right text-muted-foreground font-mono">
+                                            <DataTableCell className="text-right text-muted-foreground font-mono hidden lg:table-cell">
                                                 {player.minutes}&apos;
                                             </DataTableCell>
                                             <DataTableCell className="text-right">
@@ -605,7 +605,7 @@ export default function PlayerStatsPage() {
                                                 )}
                                                 {player.goals === 0 && <span className="text-muted-foreground/50">-</span>}
                                             </DataTableCell>
-                                            <DataTableCell className="text-right">
+                                            <DataTableCell className="text-right hidden sm:table-cell">
                                                 {player.assists > 0 && (
                                                     <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/30 hover:bg-purple-500/20">
                                                         {player.assists} 👟
@@ -613,13 +613,13 @@ export default function PlayerStatsPage() {
                                                 )}
                                                 {player.assists === 0 && <span className="text-muted-foreground/50">-</span>}
                                             </DataTableCell>
-                                            <DataTableCell className="text-right">
+                                            <DataTableCell className="text-right hidden md:table-cell">
                                                 <span className={`${player.avgPassing >= 80 ? 'text-green-500' : player.avgPassing >= 70 ? 'text-yellow-500' : 'text-muted-foreground'}`}>
                                                     {player.avgPassing.toFixed(1)}%
                                                 </span>
                                             </DataTableCell>
-                                            <DataTableCell className="text-right text-muted-foreground">{player.totalTackles}</DataTableCell>
-                                            <DataTableCell className="text-right">
+                                            <DataTableCell className="text-right text-muted-foreground hidden lg:table-cell">{player.totalTackles}</DataTableCell>
+                                            <DataTableCell className="text-right hidden lg:table-cell">
                                                 <div className="flex justify-end gap-1">
                                                     {player.yellowCards > 0 && <span className="w-3 h-4 bg-yellow-500 rounded-sm inline-block" title={`${player.yellowCards} Yellow`} />}
                                                     {player.redCards > 0 && <span className="w-3 h-4 bg-red-500 rounded-sm inline-block" title={`${player.redCards} Red`} />}
@@ -764,10 +764,10 @@ export default function PlayerStatsPage() {
                                 <DataTableHeader>
                                     <DataTableHead>Player</DataTableHead>
                                     <DataTableHead>Exercise</DataTableHead>
-                                    <DataTableHead className="text-right">PR 1</DataTableHead>
-                                    <DataTableHead className="text-right">PR 2</DataTableHead>
-                                    <DataTableHead className="text-right">PR 3</DataTableHead>
-                                    <DataTableHead className="text-right">PR 4</DataTableHead>
+                                    <DataTableHead className="text-right hidden md:table-cell">PR 1</DataTableHead>
+                                    <DataTableHead className="text-right hidden md:table-cell">PR 2</DataTableHead>
+                                    <DataTableHead className="text-right hidden md:table-cell">PR 3</DataTableHead>
+                                    <DataTableHead className="text-right hidden md:table-cell">PR 4</DataTableHead>
                                     <DataTableHead className="text-right">Best</DataTableHead>
                                 </DataTableHeader>
                                 <DataTableBody>
@@ -778,10 +778,10 @@ export default function PlayerStatsPage() {
                                                 <DataTableRow key={idx} onClick={() => router.push(`/players/${row.player_name}`)}>
                                                     <DataTableCell className="font-medium">{row.player_name}</DataTableCell>
                                                     <DataTableCell className="text-primary font-medium">{row.exercise}</DataTableCell>
-                                                    <DataTableCell className="text-right text-muted-foreground font-mono">{row.pr_1 || '-'}</DataTableCell>
-                                                    <DataTableCell className="text-right text-muted-foreground font-mono">{row.pr_2 || '-'}</DataTableCell>
-                                                    <DataTableCell className="text-right text-muted-foreground font-mono">{row.pr_3 || '-'}</DataTableCell>
-                                                    <DataTableCell className="text-right text-muted-foreground font-mono">{row.pr_4 || '-'}</DataTableCell>
+                                                    <DataTableCell className="text-right text-muted-foreground font-mono hidden md:table-cell">{row.pr_1 || '-'}</DataTableCell>
+                                                    <DataTableCell className="text-right text-muted-foreground font-mono hidden md:table-cell">{row.pr_2 || '-'}</DataTableCell>
+                                                    <DataTableCell className="text-right text-muted-foreground font-mono hidden md:table-cell">{row.pr_3 || '-'}</DataTableCell>
+                                                    <DataTableCell className="text-right text-muted-foreground font-mono hidden md:table-cell">{row.pr_4 || '-'}</DataTableCell>
                                                     <DataTableCell className="text-right">
                                                         <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/30">
                                                             {best} kg

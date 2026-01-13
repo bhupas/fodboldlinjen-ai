@@ -10,6 +10,13 @@ export const metadata: Metadata = {
   description: "Advanced football analytics and AI coaching platform",
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

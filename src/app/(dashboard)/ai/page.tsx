@@ -231,7 +231,7 @@ export default function AICoachPage() {
             <PageHeader
                 icon={BrainCircuit}
                 iconColor="purple"
-                title="AI Coach"
+                title="AI"
                 description="Get AI-powered tactical insights and analysis"
             />
 
@@ -328,7 +328,7 @@ export default function AICoachPage() {
             {/* Report Output */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-in fade-in-50 duration-500">
                 {/* History Sidebar */}
-                <Card className="lg:col-span-1 glass-card p-4 space-y-4 h-[600px] flex flex-col">
+                <Card className="lg:col-span-1 glass-card p-4 space-y-4 h-auto lg:h-[600px] flex flex-col">
                     <div className="flex items-center gap-2 text-sm font-bold text-foreground pb-2 border-b border-border">
                         <History size={16} className="text-primary" />
                         Analysis History

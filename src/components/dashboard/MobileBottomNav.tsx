@@ -26,10 +26,10 @@ import {
 
 // Main nav items shown in bottom bar
 const MAIN_NAV_ITEMS = [
-    { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+    { href: "/home", label: "Home", icon: LayoutDashboard },
     { href: "/players", label: "Players", icon: Users },
     { href: "/upload", label: "Upload", icon: Upload },
-    { href: "/ai-coach", label: "AI", icon: BrainCircuit },
+    { href: "/ai", label: "AI", icon: BrainCircuit },
 ];
 
 // More items shown in modal
@@ -73,27 +73,40 @@ export default function MobileBottomNav() {
     };
 
     const isActive = (href: string) => {
-        if (href === "/dashboard") return pathname === "/dashboard";
+        if (href === "/home") return pathname === "/home";
         return pathname.startsWith(href);
     };
 
     return (
         <>
             {/* Mobile Header */}
-            <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-4 border-b border-border bg-background/90 backdrop-blur-md safe-area-top">
-                <Link href="/dashboard" className="flex items-center gap-3">
+            <div
+                className="md:hidden fixed top-0 left-0 w-full z-50 flex items-center justify-between px-4 pb-4 border-b border-border bg-background/90 backdrop-blur-md overflow-x-hidden"
+                style={{ paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))' }}
+            >
+                <Link href="/home" className="flex items-center gap-3">
                     <Sparkles className="text-primary" size={24} />
                     <span className="font-bold text-xl text-foreground">Elite Coach</span>
                 </Link>
 
-                {/* Profile Avatar - Top Right */}
-                <Link href="/settings" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border shadow-sm">
-                    {profile?.avatarUrl ? (
-                        <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                        <User size={20} className="text-muted-foreground" />
-                    )}
-                </Link>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={toggleTheme}
+                    >
+                        {theme === 'dark' ? <Sun size={24} /> : <Moon size={24} />}
+                    </Button>
+                    {/* Profile Avatar - Top Right */}
+                    <Link href="/settings" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border shadow-sm">
+                        {profile?.avatarUrl ? (
+                            <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                            <User size={20} className="text-muted-foreground" />
+                        )}
+                    </Link>
+                </div>
             </div>
 
             {/* More Modal Overlay */}
@@ -106,7 +119,7 @@ export default function MobileBottomNav() {
 
             {/* More Modal */}
             <div className={cn(
-                "md:hidden fixed bottom-0 left-0 right-0 z-[70] bg-card border-t border-border rounded-t-3xl transform transition-transform duration-300 ease-out safe-area-bottom",
+                "md:hidden fixed bottom-0 left-0 w-full z-[70] bg-card border-t border-border rounded-t-3xl transform transition-transform duration-300 ease-out safe-area-bottom overflow-x-hidden",
                 showMore ? "translate-y-0" : "translate-y-full"
             )}>
                 <div className="p-4 space-y-4">
@@ -140,17 +153,6 @@ export default function MobileBottomNav() {
                     </div>
 
                     <div className="space-y-2">
-                        {/* Theme Toggle */}
-                        <button
-                            onClick={toggleTheme}
-                            className="w-full flex items-center gap-3 p-3 rounded-xl text-muted-foreground hover:bg-accent/50 transition-all"
-                        >
-                            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                            <span className="font-medium">
-                                {theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                            </span>
-                        </button>
-
                         <Button
                             variant="ghost"
                             className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-3 rounded-xl h-12 px-3"
@@ -164,7 +166,7 @@ export default function MobileBottomNav() {
             </div>
 
             {/* Bottom Navigation Bar */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border safe-area-bottom">
+            <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 bg-background/95 backdrop-blur-md border-t border-border safe-area-bottom overflow-x-hidden">
                 <div className="flex items-center justify-around h-16 px-2">
                     {MAIN_NAV_ITEMS.map((item) => {
                         const active = isActive(item.href);

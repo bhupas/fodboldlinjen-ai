@@ -30,7 +30,7 @@ const quickActions = [
         shortcut: "P"
     },
     {
-        href: "/ai-coach",
+        href: "/ai",
         icon: BrainCircuit,
         label: "AI Coach",
         description: "Get tactical insights",
@@ -40,8 +40,8 @@ const quickActions = [
     {
         href: "/comparison",
         icon: Swords,
-        label: "Compare",
-        description: "Head-to-head analysis",
+        label: "Head to Head",
+        description: "Compare players",
         color: "from-orange-500 to-amber-500",
         shortcut: "C"
     },

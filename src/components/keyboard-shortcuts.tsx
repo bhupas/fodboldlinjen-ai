@@ -16,11 +16,11 @@ import {
 } from "lucide-react";
 
 const shortcuts = [
-    { key: "d", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { key: "d", label: "Home", href: "/home", icon: LayoutDashboard },
     { key: "u", label: "Upload", href: "/upload", icon: Upload },
     { key: "p", label: "Players", href: "/players", icon: Users },
-    { key: "c", label: "Compare", href: "/comparison", icon: Swords },
-    { key: "a", label: "AI Coach", href: "/ai-coach", icon: BrainCircuit },
+    { key: "c", label: "Head to Head", href: "/comparison", icon: Swords },
+    { key: "a", label: "AI", href: "/ai", icon: BrainCircuit },
     { key: "e", label: "Editor", href: "/editor", icon: Database },
     { key: "s", label: "Settings", href: "/settings", icon: Settings },
 ];
@@ -55,11 +55,11 @@ export function KeyboardShortcuts() {
             }
 
             // Navigation shortcuts (only work in dashboard)
-            if (pathname.startsWith("/dashboard") ||
+            if (pathname.startsWith("/home") ||
                 pathname.startsWith("/upload") ||
                 pathname.startsWith("/players") ||
                 pathname.startsWith("/comparison") ||
-                pathname.startsWith("/ai-coach") ||
+                pathname.startsWith("/ai") ||
                 pathname.startsWith("/editor") ||
                 pathname.startsWith("/settings") ||
                 pathname.startsWith("/admin")) {

@@ -80,7 +80,7 @@ export default function UploadPage() {
             <PageHeader
                 icon={Upload}
                 iconColor="blue"
-                title="Upload Match Data"
+                title="Upload"
                 description="Import your Excel/CSV files to update player stats and match analytics."
             />
 
