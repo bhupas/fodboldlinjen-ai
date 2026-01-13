@@ -22,11 +22,29 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [view, setView] = useState<'signin' | 'signup' | 'forgot_password' | 'confirmation_sent'>('signin');
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+    const [honeyPot, setHoneyPot] = useState(""); // Anti-spam hidden field
     const router = useRouter();
     const { theme } = useTheme();
 
+    const isValidEmail = (email: string) => {
+        // Basic pattern check
+        const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!pattern.test(email)) return false;
+
+        // Block obvious dummy domains that cause high bounce rates
+        const blockedDomains = ['example.com', 'test.com', 'demo.com', 'foobar.com', 'yourdomain.com'];
+        const domain = email.split('@')[1];
+        if (blockedDomains.includes(domain)) return false;
+
+        return true;
+    };
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Anti-bot check
+        if (honeyPot) return;
+
         setIsLoading(true);
         setMessage(null);
 
@@ -37,7 +55,6 @@ export default function LoginPage() {
                 setIsLoading(false);
             } else {
                 // Successful login
-                // Refresh the router to prevent stale cache issues
                 router.refresh();
                 router.push("/home");
             }
@@ -50,6 +67,24 @@ export default function LoginPage() {
 
     const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Anti-bot check
+        if (honeyPot) {
+            // Fake success to fool bots
+            setIsLoading(true);
+            setTimeout(() => {
+                setIsLoading(false);
+                setView('confirmation_sent');
+            }, 1000);
+            return;
+        }
+
+        // Pre-validation to prevent Supabase Bounces
+        if (!isValidEmail(email)) {
+            setMessage({ text: "Please enter a valid, real email address.", type: 'error' });
+            return;
+        }
+
         setIsLoading(true);
         setMessage(null);
 
@@ -74,6 +109,14 @@ export default function LoginPage() {
 
     const handleForgotPassword = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (honeyPot) return;
+
+        if (!isValidEmail(email)) {
+            setMessage({ text: "Please enter a valid, real email address.", type: 'error' });
+            return;
+        }
+
         setIsLoading(true);
         setMessage(null);
 
@@ -168,6 +211,17 @@ export default function LoginPage() {
                                     view === 'signup' ? handleSignUp :
                                         handleForgotPassword
                             } className="space-y-5">
+
+                                {/* Honeypot - Hidden from humans */}
+                                <input
+                                    type="text"
+                                    name="confirm_website"
+                                    className="hidden pointer-events-none absolute opacity-0"
+                                    tabIndex={-1}
+                                    autoComplete="off"
+                                    value={honeyPot}
+                                    onChange={(e) => setHoneyPot(e.target.value)}
+                                />
 
                                 {view === 'signup' && (
                                     <div className="grid grid-cols-2 gap-4">
