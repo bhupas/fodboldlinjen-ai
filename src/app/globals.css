@@ -72,12 +72,15 @@
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
   }
 
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
     line-height: 1.6;
+    overflow-x: hidden;
+    width: 100%;
   }
 
   /* Better heading styles */
